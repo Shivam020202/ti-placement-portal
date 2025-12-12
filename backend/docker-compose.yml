@@ -1,0 +1,37 @@
+services:
+  web:
+    build: .
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - db
+      - redis
+   
+  db:
+    image: mysql:8.0
+    restart: on-failure
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/data.sql:/docker-entrypoint-initdb.d/data.sql
+  
+  redis: 
+    image: redis:7.4
+    restart: on-failure
+    command: redis-server --user ${REDIS_USER} --requirepass ${REDIS_PASS}
+    volumes:
+      - redis_data:/data
+volumes:
+  db_data:
+  redis_data:
+    

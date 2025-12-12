@@ -1,0 +1,49 @@
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Node / Package managers
+node_modules/
+.pnpm-store/
+.turbo/
+
+# Build outputs
+dist/
+build/
+.parcel-cache/
+.next/
+.nuxt/
+.vite/
+.cache/
+
+# Environment & secrets
+.env
+.env.*
+backend/credentials.json
+backend/firebase-adminsdk*.json
+
+# Uploads / generated files
+backend/uploads/
+backend/tmp/
+frontend/public/uploads/
+storage/
+
+# Coverage & reports
+coverage/
+*.lcov
+
+# Misc
+*.log
+*.pid
+*.seed
+*.sqlite
+*.tsbuildinfo

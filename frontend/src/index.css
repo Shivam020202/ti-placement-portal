@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body::-webkit-scrollbar {
+    display: none !important;
+}
+
+@layer utilities {
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: .5;
+      }
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+}
+
+body {
+    overflow: hidden;
+}
+
+
+.border-progress {
+  position: absolute;
+  left: 0;
+  width: 2px;
+  transform-origin: top;
+  animation: fillBorder 0.6s ease-out forwards;
+}
+
+.step-complete {
+  animation: pop 0.3s ease-out;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Rich Text Editor Styles */
+.ql-container {
+  font-family: inherit !important;
+}
+
+.ql-editor {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.ql-editor p {
+  margin-bottom: 1em;
+}
+
+.ql-snow .ql-toolbar button:hover,
+.ql-snow .ql-toolbar button:focus {
+  color: #ef4444;
+}
+
+.ql-snow .ql-toolbar button.ql-active,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active {
+  color: #ef4444;
+}
+
+.ql-snow .ql-toolbar button:hover .ql-fill,
+.ql-snow .ql-toolbar button.ql-active .ql-fill {
+  fill: #ef4444;
+}
+
+.ql-snow .ql-toolbar button:hover .ql-stroke,
+.ql-snow .ql-toolbar button.ql-active .ql-stroke {
+  stroke: #ef4444;
+}
+
