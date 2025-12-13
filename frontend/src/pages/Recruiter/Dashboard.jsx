@@ -14,6 +14,41 @@ import Dashboard from "@/components/layouts/Dashboard";
 const RecruiterDashboard = () => {
   const auth = useRecoilValue(authState);
 
+  const normalizeJob = (job) => {
+    const title = job.title || job.jobTitle || job.position || "Untitled role";
+    const jobType = job.role || job.jobType || "Not specified";
+    const description =
+      job.descriptionText || job.jobDescription || job.description || "";
+    const location = Array.isArray(job.locationOptions)
+      ? job.locationOptions.join(", ")
+      : job.locationOptions || job.location || "Remote";
+    const salary = job.ctc ?? job.salary ?? job.compensation;
+    const reviewStatus = job.Review?.status;
+    const isActive =
+      reviewStatus === "approved"
+        ? true
+        : reviewStatus === "rejected"
+        ? false
+        : typeof job.isActive === "boolean"
+        ? job.isActive
+        : job.applicationDeadline
+        ? new Date(job.applicationDeadline) >= new Date()
+        : false;
+
+    return {
+      ...job,
+      id: job.id ?? job.jobId,
+      title,
+      jobType,
+      description,
+      location,
+      salary,
+      isActive,
+      reviewStatus: reviewStatus || "under_review",
+      applicationsCount: job.Students?.length ?? job.applicationsCount ?? 0,
+    };
+  };
+
   // Fetch all job listings
   const { data: jobs, isLoading } = useQuery({
     queryKey: ["recruiter-jobs"],
@@ -21,7 +56,16 @@ const RecruiterDashboard = () => {
       const response = await axios.get(
         `${import.meta.env.VITE_URI}/job-listings/recruiters`
       );
-      return response.data || [];
+      const data = response.data;
+      const parsed = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.jobs)
+        ? data.jobs
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
+
+      return parsed.map(normalizeJob);
     },
   });
 
@@ -30,7 +74,7 @@ const RecruiterDashboard = () => {
     totalJobs: jobs?.length || 0,
     activeJobs: jobs?.filter((job) => job.isActive)?.length || 0,
     totalApplications:
-      jobs?.reduce((sum, job) => sum + (job.Students?.length || 0), 0) || 0,
+      jobs?.reduce((sum, job) => sum + (job.applicationsCount || 0), 0) || 0,
     hiredCandidates: 0, // Can be calculated based on hiring process status
   };
 
@@ -170,9 +214,7 @@ const RecruiterDashboard = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-dark">
-                        {job.jobTitle}
-                      </h3>
+                      <h3 className="font-semibold text-dark">{job.title}</h3>
                       <p className="text-sm text-muted mt-1">
                         {job.jobType} •{" "}
                         {job.salary ? `₹${job.salary}` : "Not specified"}

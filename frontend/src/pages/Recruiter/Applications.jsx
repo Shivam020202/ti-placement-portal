@@ -17,33 +17,77 @@ const Applications = () => {
   const auth = useRecoilValue(authState);
   const [selectedJob, setSelectedJob] = useState("all");
 
+  const normalizeJob = (job) => {
+    const title = job.title || job.jobTitle || job.position || "Untitled role";
+    const jobType = job.role || job.jobType || "Not specified";
+    const location = Array.isArray(job.locationOptions)
+      ? job.locationOptions.join(", ")
+      : job.locationOptions || job.location || "Remote";
+    const salary = job.ctc ?? job.salary ?? job.compensation;
+
+    return {
+      ...job,
+      id: job.id ?? job.jobId,
+      title,
+      jobType,
+      location,
+      salary,
+    };
+  };
+
   // Fetch all jobs with their applications
-  const { data: jobs, isLoading } = useQuery({
-    queryKey: ["recruiter-jobs-with-applications"],
+  const { data: jobs, isLoading: jobsLoading } = useQuery({
+    queryKey: ["recruiter-jobs"],
     queryFn: async () => {
       const response = await axios.get(
         `${import.meta.env.VITE_URI}/job-listings/recruiters`
       );
-      return response.data || [];
+      const data = response.data;
+      const parsed = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.jobs)
+        ? data.jobs
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
+
+      return parsed.map(normalizeJob);
     },
   });
 
-  // Flatten all applications from all jobs
-  const allApplications =
-    jobs?.flatMap((job) =>
-      (job.Students || []).map((student) => ({
-        ...student,
-        jobId: job.id,
-        jobTitle: job.jobTitle,
-        appliedAt: student.AppliedToJob?.createdAt,
-      }))
-    ) || [];
+  // Fetch applications (all or per job) from recruiter applied students endpoint
+  const { data: applications, isLoading: appsLoading } = useQuery({
+    queryKey: ["recruiter-applications", selectedJob, jobs?.length],
+    enabled: Array.isArray(jobs) && jobs.length > 0,
+    queryFn: async () => {
+      // helper to fetch applicants for a job
+      const fetchJobApps = async (jobId) => {
+        const res = await axios.get(
+          `${
+            import.meta.env.VITE_URI
+          }/job-listings/recruiters/applied-stds/${jobId}`
+        );
+        const students = res.data?.job?.Students || [];
+        return students.map((student) => ({
+          ...student,
+          jobId,
+          jobTitle: res.data?.job?.title || res.data?.job?.jobTitle,
+          appliedAt: student.AppliedToJob?.createdAt,
+        }));
+      };
 
-  const filteredApplications = allApplications?.filter((app) => {
-    const matchesJob =
-      selectedJob === "all" || app.jobId === parseInt(selectedJob);
-    return matchesJob;
+      if (selectedJob === "all") {
+        const results = await Promise.all(
+          jobs.map((job) => fetchJobApps(job.id))
+        );
+        return results.flat();
+      }
+
+      return fetchJobApps(selectedJob);
+    },
   });
+
+  const filteredApplications = applications || [];
 
   return (
     <Dashboard role="recruiter">
@@ -72,7 +116,7 @@ const Applications = () => {
                 <option value="all">All Jobs</option>
                 {jobs?.map((job) => (
                   <option key={job.id} value={job.id}>
-                    {job.jobTitle} ({job.Students?.length || 0} applications)
+                    {job.title}
                   </option>
                 ))}
               </select>
@@ -81,7 +125,7 @@ const Applications = () => {
         </div>
 
         {/* Applications List */}
-        {isLoading ? (
+        {jobsLoading || appsLoading ? (
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
               <div

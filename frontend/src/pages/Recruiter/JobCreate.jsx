@@ -54,12 +54,19 @@ const JobCreate = () => {
       const res = await axios.get(
         `${import.meta.env.VITE_URI}/recruiter/branches`
       );
-      return res.data || [];
+      const data = res.data;
+      if (Array.isArray(data)) return data;
+      if (data?.branches && Array.isArray(data.branches)) return data.branches;
+      return [];
     },
   });
 
   useEffect(() => {
-    if (branches && Object.keys(branchesCgpa).length === 0) {
+    if (
+      Array.isArray(branches) &&
+      branches.length &&
+      Object.keys(branchesCgpa).length === 0
+    ) {
       const initial = Object.fromEntries(branches.map((b) => [b.code, "8.0"]));
       setBranchesCgpa(initial);
     }
@@ -105,6 +112,25 @@ const JobCreate = () => {
         .map((s) => s.trim())
         .filter(Boolean);
 
+    const normalizeVenue = (venue) => {
+      const v = (venue || "").trim().toLowerCase();
+      if (["online", "virtual", "remote", "zoom", "meet"].includes(v)) {
+        return "online";
+      }
+      return "offline";
+    };
+
+    const workflowWithIndex = workflowData.map((step, idx) => {
+      const venue = normalizeVenue(step.venue);
+      const link = venue === "online" ? step.link : null;
+      return {
+        ...step,
+        venue,
+        link,
+        index: step.index ?? idx,
+      };
+    });
+
     const cgpaParsed = Object.fromEntries(
       Object.entries(branchesCgpa).map(([code, value]) => [
         code,
@@ -119,7 +145,7 @@ const JobCreate = () => {
         gradYear: toArray(job.gradYear),
         locationOptions: toArray(job.locationOptions),
         ctcBreakup: toArray(job.ctcBreakup),
-        workflowData,
+        workflowData: workflowWithIndex,
       },
       branchWiseMinCgpa: cgpaParsed,
     };
@@ -132,7 +158,7 @@ const JobCreate = () => {
 
   return (
     <Dashboard role="recruiter">
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 min-h-screen overflow-y-auto max-h-screen pb-28">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted flex items-center gap-2">
@@ -346,7 +372,7 @@ const JobCreate = () => {
               <RiMapPinLine className="w-5 h-5 text-blue-600" />
               <h2 className="text-xl font-semibold">Branch & CGPA</h2>
             </div>
-            {branches && branches.length > 0 ? (
+            {Array.isArray(branches) && branches.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {branches.map((branch) => (
                   <label
@@ -514,7 +540,7 @@ const JobCreate = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-3 sticky bottom-0 bg-white/90 backdrop-blur p-4 rounded-lg shadow border">
             <Link to="/recruiter/jobs" className="btn btn-outline">
               Cancel
             </Link>

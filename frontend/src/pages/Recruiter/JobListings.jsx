@@ -18,20 +18,64 @@ const JobListings = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
+  const normalizeJob = (job) => {
+    const title = job.title || job.jobTitle || job.position || "Untitled role";
+    const description =
+      job.descriptionText || job.jobDescription || job.description || "";
+    const jobType = job.role || job.jobType || "Not specified";
+    const location = Array.isArray(job.locationOptions)
+      ? job.locationOptions.join(", ")
+      : job.locationOptions || job.location || "Remote";
+    const salary = job.ctc ?? job.salary ?? job.compensation;
+    const reviewStatus = job.Review?.status;
+    const isActive =
+      reviewStatus === "approved"
+        ? true
+        : reviewStatus === "rejected"
+        ? false
+        : typeof job.isActive === "boolean"
+        ? job.isActive
+        : job.applicationDeadline
+        ? new Date(job.applicationDeadline) >= new Date()
+        : false;
+
+    return {
+      ...job,
+      id: job.id ?? job.jobId,
+      title,
+      description,
+      jobType,
+      location,
+      salary,
+      isActive,
+      reviewStatus: reviewStatus || "under_review",
+      applicationsCount: job.Students?.length ?? job.applicationsCount ?? 0,
+    };
+  };
+
   const { data: jobs, isLoading } = useQuery({
     queryKey: ["recruiter-jobs"],
     queryFn: async () => {
       const response = await axios.get(
         `${import.meta.env.VITE_URI}/job-listings/recruiters`
       );
-      return response.data || [];
+      const data = response.data;
+      const parsed = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.jobs)
+        ? data.jobs
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
+
+      return parsed.map(normalizeJob);
     },
   });
 
   const filteredJobs = jobs?.filter((job) => {
     const matchesSearch =
-      job.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.jobDescription?.toLowerCase().includes(searchTerm.toLowerCase());
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter =
       filterStatus === "all" ||
       (filterStatus === "active" && job.isActive) ||
@@ -109,16 +153,22 @@ const JobListings = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg text-dark mb-2">
-                      {job.jobTitle}
+                      {job.title}
                     </h3>
                     <div
                       className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                        job.isActive
+                        job.reviewStatus === "approved"
                           ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-700"
+                          : job.reviewStatus === "rejected"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-yellow-100 text-yellow-700"
                       }`}
                     >
-                      {job.isActive ? "Active" : "Closed"}
+                      {job.reviewStatus === "approved"
+                        ? "Approved"
+                        : job.reviewStatus === "rejected"
+                        ? "Rejected"
+                        : "Under Review"}
                     </div>
                   </div>
                 </div>
@@ -142,7 +192,7 @@ const JobListings = () => {
 
                 <div className="flex items-center justify-between pt-4 border-t">
                   <span className="text-sm text-muted">
-                    {job.Students?.length || 0} Applications
+                    {job.applicationsCount} Applications
                   </span>
                   <Link
                     to={`/recruiter/jobs/${job.id}`}
