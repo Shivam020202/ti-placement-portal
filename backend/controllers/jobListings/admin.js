@@ -71,23 +71,33 @@ const createJobListing = async (req, res, next) => {
 };
 
 // VERIFY JOBS
-async function verifyJob(req, res, next) {
+// UPDATE JOB STATUS
+async function updateJobStatus(req, res, next) {
   const jobId = req.params.id;
+  const { status } = req.body;
   const user = res.locals.user;
 
   try {
-    const ApprovedReview = ListingReview.update(
+    if (!Object.values(StatusTypes).includes(status)) {
+      throw new HttpError(HttpCodes.BAD_REQUEST, "Invalid status type");
+    }
+
+    const [updatedRows] = await ListingReview.update(
       {
-        status: StatusTypes.APPROVED,
-        statusReason: `Approved by ${user.fullName}`,
+        status: status,
+        statusReason: `${
+          status === "approved" ? "Approved" : "Status updated"
+        } by ${user.fullName}`,
       },
       { where: { jobListingId: jobId } }
     );
 
-    if (!ApprovedReview) throw new Error("Invalid Job Id");
+    if (updatedRows === 0)
+      throw new Error("Invalid Job Id or Review not found");
 
     res.status(200).json({
-      ApprovedReview,
+      message: "Job status updated successfully",
+      status,
     });
   } catch (error) {
     next(error);
@@ -254,7 +264,7 @@ async function getJobPageData(req, res, next) {
           as: "Review",
           where: { status: "approved" },
         },
-        { model: User, foreignKey: "addedBy" },
+        { model: User },
         {
           model: HiringProcess,
           include: [GroupDiscussion, CodingRound, Interview, PPT],
@@ -280,6 +290,7 @@ async function getJobPageData(req, res, next) {
         },
         Branch,
         Company,
+        { model: User },
       ],
       order: [["createdAt", "DESC"]],
     };
@@ -520,7 +531,7 @@ const removeAdminFromListing = async (req, res, next) => {
 module.exports = {
   getAllJobListings,
   createJobListing,
-  verifyJob,
+  updateJobStatus,
   getUnverifiedJobs,
   deleteJobListingById,
   updateJobListing,

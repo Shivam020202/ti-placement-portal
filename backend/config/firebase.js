@@ -4,16 +4,23 @@ const { getStorage } = require("firebase/storage");
 const firebaseAdmin = require("firebase-admin");
 const serviceAccount = require("../credentials.json");
 
+console.log(
+  "Firebase Admin SDK initializing with project:",
+  serviceAccount.project_id
+);
+
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount),
-  databaseURL: "https://placement-portal-7fb64-default-rtdb.firebaseio.com/"
+  databaseURL: "https://placement-portal-7fb64-default-rtdb.firebaseio.com/",
 });
+
+console.log("Firebase Admin SDK initialized successfully");
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
   authDomain: process.env.FIREBASE_AUTH_DOMAIN,
   projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET, 
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.FIREBASE_MESSSAGE_SENDER_ID,
   appId: process.env.FIREBASE_APP_ID,
   measurementId: process.env.FIREBASE_MEASUREMENT_ID,
@@ -26,5 +33,5 @@ const bucket = getStorage(app, process.env.FIREBASE_BUCKET_URL);
 
 module.exports = {
   bucket,
-  firebaseAdmin
-}
+  firebaseAdmin,
+};

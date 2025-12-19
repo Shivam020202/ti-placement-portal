@@ -1,10 +1,14 @@
 const express = require("express");
 const JobListingController = require("../../controllers/jobListings/admin");
 const router = express.Router();
-const upload=require("../../config/multer");
+const upload = require("../../config/multer");
 
 // Create a new job listing ( Admins & SuperAdmins )
-router.post("/", upload('./uploads/job_description'),JobListingController.createJobListing);
+router.post(
+  "/",
+  upload("./uploads/job_description"),
+  JobListingController.createJobListing
+);
 // Get all job listings
 router.get("/", JobListingController.getAllJobListings);
 
@@ -27,7 +31,8 @@ router.put("/send-to-recruiter", JobListingController.sendToRecruiter);
 router.get("/:id", JobListingController.getJobListingById);
 
 // Verify a Job
-router.put("/verify/:id", JobListingController.verifyJob);
+// Update Job Status (Verify/Approve/Reject)
+router.patch("/status/:id", JobListingController.updateJobStatus);
 
 // Delete Job Application for Std
 router.delete("/std-job", JobListingController.deleteStdJobApp);
@@ -41,8 +46,8 @@ router.put("/:id", JobListingController.updateJobListing);
 router.post("/:jobId/perm/", JobListingController.addAdminToListing);
 
 router.delete(
-	"/:jobId/perm/:adminId",
-	JobListingController.removeAdminFromListing
+  "/:jobId/perm/:adminId",
+  JobListingController.removeAdminFromListing
 );
 
 router.get("/:jobId/perm", JobListingController.getAdminsForListing);
