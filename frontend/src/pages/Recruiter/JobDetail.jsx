@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
 import { useRecoilValue } from "recoil";
@@ -17,10 +18,12 @@ import {
   RiEditLine,
 } from "react-icons/ri";
 import Dashboard from "@/components/layouts/Dashboard";
+import EditJobModal from "@/components/job/EditJobModal";
 
 const JobDetail = () => {
   const { id } = useParams();
   const auth = useRecoilValue(authState);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["job-detail", id],
@@ -74,20 +77,31 @@ const JobDetail = () => {
     <Dashboard role="recruiter">
       <div className="p-6 space-y-6">
         {/* Back Button */}
-        <Link
-          to="/recruiter/jobs"
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
-        >
-          <RiArrowLeftLine className="w-5 h-5" />
-          Back to Jobs
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            to="/recruiter/jobs"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+          >
+            <RiArrowLeftLine className="w-5 h-5" />
+            Back to Jobs
+          </Link>
+
+          {/* Edit Button */}
+          <button
+            onClick={() => setShowEditModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <RiEditLine className="w-5 h-5" />
+            Edit Job
+          </button>
+        </div>
 
         {/* Job Header */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-dark mb-2">
-                {job.jobTitle}
+                {job.title || job.jobTitle}
               </h1>
               <div className="flex items-center gap-4 flex-wrap">
                 <span
@@ -377,6 +391,11 @@ const JobDetail = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Job Modal */}
+      {showEditModal && job && (
+        <EditJobModal job={job} onClose={() => setShowEditModal(false)} />
+      )}
     </Dashboard>
   );
 };

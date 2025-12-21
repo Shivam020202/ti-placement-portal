@@ -189,17 +189,41 @@ async function exportAppliedStds(req, res, next) {
 
 async function updateJob(req, res, next) {
   const { jobId } = req.params;
-  console.log(req.params);
-  const { updatedHW } = req.body;
-  console.log(updatedHW);
+  const { updatedData, updatedHW } = req.body;
+
   try {
     const job = await JobListing.findByPk(jobId);
-    updatedHW.forEach(async (item) => {
-      await services.updateHiringWorkflow(item, job, "update");
+
+    if (!job) {
+      throw new Error("Job not found");
+    }
+
+    // Update job listing fields if provided
+    if (updatedData) {
+      await JobListing.update({ ...updatedData }, { where: { id: jobId } });
+    }
+
+    // Update hiring workflow if provided
+    if (updatedHW && Array.isArray(updatedHW)) {
+      for (const item of updatedHW) {
+        await services.updateHiringWorkflow(item, job, "update");
+      }
+    }
+
+    const updatedJob = await JobListing.findByPk(jobId, {
+      include: [
+        Company,
+        Branch,
+        "Review",
+        {
+          model: HiringProcess,
+          include: [GroupDiscussion, CodingRound, Interview, PPT],
+        },
+      ],
     });
 
-    const updatedJob = await JobListing.findByPk(jobId);
     res.status(200).json({
+      message: "Job updated successfully",
       job: updatedJob,
     });
   } catch (error) {

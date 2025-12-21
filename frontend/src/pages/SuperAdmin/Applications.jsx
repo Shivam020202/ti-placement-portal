@@ -52,7 +52,9 @@ const Applications = () => {
         allJobs.map(async (job) => {
           try {
             const appsResponse = await axios.get(
-              `${import.meta.env.VITE_URI}/admin/job/applied-stds/${job.id}`
+              `${import.meta.env.VITE_URI}/job-listings/admins/applied-stds/${
+                job.id
+              }`
             );
             return {
               ...job,
@@ -79,7 +81,7 @@ const Applications = () => {
   const sendToHRMutation = useMutation({
     mutationFn: async (jobId) => {
       const response = await axios.put(
-        `${import.meta.env.VITE_URI}/admin/job/send-to-recruiter`,
+        `${import.meta.env.VITE_URI}/job-listings/admins/send-to-recruiter`,
         { jobId }
       );
       return response.data;
@@ -97,7 +99,9 @@ const Applications = () => {
   const handleExportExcel = async (jobId, jobTitle) => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_URI}/admin/job/export-applied-std/${jobId}`,
+        `${
+          import.meta.env.VITE_URI
+        }/job-listings/admins/export-applied-std/${jobId}`,
         {
           params: { columns: selectedColumns },
           responseType: "blob",
