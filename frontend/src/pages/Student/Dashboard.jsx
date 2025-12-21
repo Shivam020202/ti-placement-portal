@@ -15,6 +15,7 @@ import {
   RiMapPinLine,
   RiMoneyDollarCircleLine,
 } from "react-icons/ri";
+import ResumeManager from "@/components/student/ResumeManager";
 
 const StudentDashboard = () => {
   const auth = useRecoilValue(authState);
@@ -324,6 +325,9 @@ const StudentDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Resume Manager */}
+        <ResumeManager />
 
         {/* New Job Opportunities */}
         {newJobs.length > 0 && (
