@@ -1,14 +1,17 @@
 import React, { useState, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import Sidebar from "../ui/Sidebar";
-import { useRecoilValue } from "recoil";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 import { authState } from "../../store/atoms/authAtom";
 import { CiSearch } from "react-icons/ci";
 import { IoIosAddCircle } from "react-icons/io";
 import DraftModal from "../ui/DraftModal";
+import { Toast } from "@/components/ui/toast";
 
 const Dashboard = ({ children }) => {
   const auth = useRecoilValue(authState);
+  const setAuth = useSetRecoilState(authState);
+  const navigate = useNavigate();
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const location = useLocation();
@@ -34,7 +37,21 @@ const Dashboard = ({ children }) => {
   }
 
   const handleLogout = () => {
-    // Add your logout logic here
+    // Clear auth state
+    setAuth({
+      user: null,
+      token: null,
+      role: null,
+      isAuthenticated: false,
+      loading: false,
+      error: null,
+    });
+    // Clear localStorage
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userData");
+    // Navigate to login
+    navigate("/login");
+    Toast.success("Logged out successfully");
   };
 
   const getSearchPlaceholder = () => {

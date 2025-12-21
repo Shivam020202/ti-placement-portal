@@ -9,6 +9,7 @@ import {
   RiCloseLine,
   RiCheckLine,
   RiErrorWarningLine,
+  RiEyeLine,
 } from "react-icons/ri";
 import { Toast } from "@/components/ui/toast";
 
@@ -121,16 +122,67 @@ const ResumeManager = () => {
     }
   };
 
-  const handleDownload = (resume) => {
+  const handleDownload = async (resume) => {
     // For legacy resumes stored in Firebase, use the direct URL
     if (resume.isLegacy && resume.downloadUrl) {
       window.open(resume.downloadUrl, "_blank");
     } else {
-      // For new resumes stored in database, use the download endpoint
-      const downloadUrl = `${
-        import.meta.env.VITE_URI
-      }/student/resumes/download/${resume.id}`;
-      window.open(downloadUrl, "_blank");
+      try {
+        // For new resumes stored in database, use the download endpoint with auth
+        const downloadUrl = `${
+          import.meta.env.VITE_URI
+        }/student/resumes/download/${resume.id}`;
+
+        const response = await axios.get(downloadUrl, {
+          responseType: "blob",
+        });
+
+        // Create a blob URL and trigger download
+        const blob = new Blob([response.data], {
+          type: resume.mimeType || "application/pdf",
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = resume.originalName || resume.name || "resume.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        Toast.error("Failed to download resume");
+        console.error("Download error:", error);
+      }
+    }
+  };
+
+  const handleView = async (resume) => {
+    // For legacy resumes stored in Firebase, use the direct URL
+    if (resume.isLegacy && resume.downloadUrl) {
+      window.open(resume.downloadUrl, "_blank");
+    } else {
+      try {
+        // For new resumes stored in database, fetch with auth and open in new tab
+        const downloadUrl = `${
+          import.meta.env.VITE_URI
+        }/student/resumes/download/${resume.id}`;
+
+        const response = await axios.get(downloadUrl, {
+          responseType: "blob",
+        });
+
+        // Create a blob URL and open in new tab
+        const blob = new Blob([response.data], {
+          type: resume.mimeType || "application/pdf",
+        });
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, "_blank");
+        // Note: Don't revoke URL immediately as it needs to be accessible for the new tab
+        setTimeout(() => window.URL.revokeObjectURL(url), 60000); // Revoke after 1 minute
+      } catch (error) {
+        Toast.error("Failed to view resume");
+        console.error("View error:", error);
+      }
     }
   };
 
@@ -284,18 +336,25 @@ const ResumeManager = () => {
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleView(resume)}
+                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    title="View"
+                  >
+                    <RiEyeLine className="w-5 h-5" />
+                  </button>
                   <button
                     onClick={() => handleDownload(resume)}
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="View/Download"
+                    title="Download"
                   >
                     <RiDownloadLine className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleDelete(resume.id)}
                     disabled={deleteMutation.isPending}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                     title="Delete"
                   >
                     <RiDeleteBinLine className="w-5 h-5" />

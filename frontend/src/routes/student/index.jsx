@@ -4,6 +4,7 @@ import Profile from "../../pages/Student/Profile";
 import JobListings from "../../pages/Student/JobListings";
 import JobDetail from "../../pages/Student/JobDetail";
 import Applications from "../../pages/Student/Applications";
+import Resumes from "../../pages/Student/Resumes";
 
 const StudentRoutes = () => {
   return (
@@ -13,6 +14,7 @@ const StudentRoutes = () => {
       <Route path="jobs" element={<JobListings />} />
       <Route path="jobs/:jobId" element={<JobDetail />} />
       <Route path="applications" element={<Applications />} />
+      <Route path="resumes" element={<Resumes />} />
       <Route path="*" element={<Navigate to="dashboard" replace />} />
     </Routes>
   );

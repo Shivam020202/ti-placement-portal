@@ -9,6 +9,7 @@ import {
   RiTeamFill,
   RiFileListFill,
   RiFileUserFill,
+  RiFileTextFill,
 } from "react-icons/ri";
 import { ImOffice } from "react-icons/im";
 import { IoMdLogOut } from "react-icons/io";
@@ -62,6 +63,12 @@ const menuConfigs = {
       icon: <RiFileListFill size={24} />,
       label: "My Applications",
       path: "/student/applications",
+    },
+    {
+      id: "resumes",
+      icon: <RiFileTextFill size={24} />,
+      label: "My Resumes",
+      path: "/student/resumes",
     },
     {
       id: "profile",
