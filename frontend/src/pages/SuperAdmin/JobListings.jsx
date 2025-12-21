@@ -17,6 +17,7 @@ import {
   RiMessage2Line,
 } from "react-icons/ri";
 import AssignAdminModal from "@/components/job/AssignAdminModal";
+import { getLogoUrl } from "@/utils/logoHelper";
 
 const mockJobs = [
   {
@@ -88,7 +89,8 @@ const JobListings = () => {
           const hrEmail = job.User?.email || job.user?.email || "Unknown";
           const companyName =
             job.Company?.name || job.company?.name || "Unknown Company";
-          const companyLogo = job.Company?.logo || assets.googleLogo;
+          const companyLogo =
+            getLogoUrl(job.Company?.logo) || assets.googleLogo;
 
           // Map Review status
           const status = job.Review?.status || "pending";

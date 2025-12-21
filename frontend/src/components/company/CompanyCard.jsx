@@ -4,18 +4,12 @@ import {
   RiBuildingLine,
   RiDeleteBin6Line,
 } from "react-icons/ri";
-import { useState } from 'react';
+import { useState } from "react";
+import { getLogoUrl } from "@/utils/logoHelper";
 
-const CompanyCard = ({
-  company,
-  onEdit,
-  onDelete,
-  onInviteHR,
-}) => {
+const CompanyCard = ({ company, onEdit, onDelete, onInviteHR }) => {
   const [imageError, setImageError] = useState(false);
-  const logoUrl = company.logo
-    ? `${import.meta.env.VITE_URI}${company.logo}`
-    : null;
+  const logoUrl = getLogoUrl(company.logo);
 
   return (
     <div className={`bg-background rounded-xl p-6`}>

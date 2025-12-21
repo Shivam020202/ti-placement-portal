@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { RiUpload2Line, RiCloseLine, RiFileTextLine } from 'react-icons/ri';
-import { Toast } from '@/components/ui/toast';
-import axios from '@/utils/axiosConfig';
+import { useState } from "react";
+import { RiUpload2Line, RiCloseLine, RiFileTextLine } from "react-icons/ri";
+import { Toast } from "@/components/ui/toast";
+import axios from "@/utils/axiosConfig";
 
 const FileUploadSection = ({ formData, setFormData, errors }) => {
   const [uploading, setUploading] = useState(false);
@@ -9,9 +9,10 @@ const FileUploadSection = ({ formData, setFormData, errors }) => {
   // File validation constants
   const MAX_FILE_SIZE = 10000000; // 10MB in bytes
   const ALLOWED_TYPES = {
-    'application/pdf': 'PDF',
-    'application/msword': 'DOC',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX'
+    "application/pdf": "PDF",
+    "application/msword": "DOC",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      "DOCX",
   };
 
   const handleFileUpload = async (e) => {
@@ -20,39 +21,39 @@ const FileUploadSection = ({ formData, setFormData, errors }) => {
 
     // Validate file type
     if (!ALLOWED_TYPES[file.type]) {
-      Toast.error('Please upload PDF, DOC or DOCX files only');
+      Toast.error("Please upload PDF, DOC or DOCX files only");
       return;
     }
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      Toast.error('File size should be less than 10MB');
+      Toast.error("File size should be less than 10MB");
       return;
     }
 
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
       const response = await axios.post(
         `${import.meta.env.VITE_URI}/upload-description`,
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        descriptionFile: response.data.url
+        descriptionFile: response.data.url,
       }));
 
-      Toast.success('File uploaded successfully');
+      Toast.success("File uploaded successfully");
     } catch (error) {
-      Toast.error(error.response?.data?.message || 'Failed to upload file');
+      Toast.error(error.response?.data?.message || "Failed to upload file");
     } finally {
       setUploading(false);
     }
@@ -69,10 +70,12 @@ const FileUploadSection = ({ formData, setFormData, errors }) => {
         <div className="flex items-center gap-4 p-4 bg-base-100 rounded-lg border border-base-200">
           <RiFileTextLine className="text-2xl text-muted" />
           <div className="flex-1">
-            <div className="font-medium">{formData.descriptionFile.split('/').pop()}</div>
-            <a 
-              href={formData.descriptionFile} 
-              target="_blank" 
+            <div className="font-medium">
+              {formData.descriptionFile.split("/").pop()}
+            </div>
+            <a
+              href={`${import.meta.env.VITE_URI}${formData.descriptionFile}`}
+              target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-red hover:underline"
             >
@@ -81,7 +84,9 @@ const FileUploadSection = ({ formData, setFormData, errors }) => {
           </div>
           <button
             type="button"
-            onClick={() => setFormData(prev => ({ ...prev, descriptionFile: null }))}
+            onClick={() =>
+              setFormData((prev) => ({ ...prev, descriptionFile: null }))
+            }
             className="btn btn-ghost btn-sm text-red"
           >
             <RiCloseLine />
@@ -96,13 +101,15 @@ const FileUploadSection = ({ formData, setFormData, errors }) => {
             className="hidden"
             id="descriptionFile"
           />
-          <label 
+          <label
             htmlFor="descriptionFile"
             className="cursor-pointer space-y-2 block"
           >
             <RiUpload2Line className="mx-auto text-3xl text-muted" />
             <div className="font-medium">Click to upload file</div>
-            <div className="text-sm text-muted">PDF, DOC or DOCX (Max 10MB)</div>
+            <div className="text-sm text-muted">
+              PDF, DOC or DOCX (Max 10MB)
+            </div>
           </label>
         </div>
       )}
@@ -116,7 +123,9 @@ const FileUploadSection = ({ formData, setFormData, errors }) => {
 
       {errors?.descriptionFile && (
         <label className="label">
-          <span className="label-text-alt text-error">{errors.descriptionFile}</span>
+          <span className="label-text-alt text-error">
+            {errors.descriptionFile}
+          </span>
         </label>
       )}
     </div>

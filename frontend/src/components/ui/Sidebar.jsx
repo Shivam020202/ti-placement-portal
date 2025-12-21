@@ -33,6 +33,12 @@ const menuConfigs = {
       path: "/super-admin/job-listings",
     },
     {
+      id: "applications",
+      icon: <RiFileListFill size={24} />,
+      label: "Applications",
+      path: "/super-admin/applications",
+    },
+    {
       id: "team-members",
       icon: <RiTeamFill size={24} />,
       label: "Team Members",

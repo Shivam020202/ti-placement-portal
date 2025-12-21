@@ -16,6 +16,7 @@ import {
   RiMoneyDollarCircleLine,
 } from "react-icons/ri";
 import ResumeManager from "@/components/student/ResumeManager";
+import { getLogoUrl } from "@/utils/logoHelper";
 
 const StudentDashboard = () => {
   const auth = useRecoilValue(authState);
@@ -225,9 +226,9 @@ const StudentDashboard = () => {
                       className="flex items-center gap-3 p-3 rounded-lg hover:bg-background transition-colors"
                     >
                       <div className="w-10 h-10 bg-background rounded-lg flex items-center justify-center flex-shrink-0">
-                        {job.Company?.logo ? (
+                        {getLogoUrl(job.Company?.logo) ? (
                           <img
-                            src={job.Company.logo}
+                            src={getLogoUrl(job.Company?.logo)}
                             alt=""
                             className="w-6 h-6 object-contain"
                           />
@@ -353,9 +354,9 @@ const StudentDashboard = () => {
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                        {job.Company?.logo ? (
+                        {getLogoUrl(job.Company?.logo) ? (
                           <img
-                            src={job.Company.logo}
+                            src={getLogoUrl(job.Company?.logo)}
                             alt=""
                             className="w-6 h-6 object-contain"
                           />

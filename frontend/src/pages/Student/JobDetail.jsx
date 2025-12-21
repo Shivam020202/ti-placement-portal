@@ -23,6 +23,7 @@ import {
   RiUploadCloudLine,
   RiAlertLine,
 } from "react-icons/ri";
+import { getLogoUrl } from "@/utils/logoHelper";
 
 const JobDetail = () => {
   const { jobId } = useParams();
@@ -169,7 +170,7 @@ const JobDetail = () => {
   }
 
   const companyName = job.Company?.name || "Unknown Company";
-  const companyLogo = job.Company?.logo || null;
+  const companyLogo = getLogoUrl(job.Company?.logo);
   const location = Array.isArray(job.locationOptions)
     ? job.locationOptions.join(", ")
     : job.locationOptions || "Remote";
