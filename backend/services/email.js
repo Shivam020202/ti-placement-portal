@@ -16,7 +16,7 @@ async function sendEmail(email, role, next) {
             from: process.env.EMAIL_USER,
             to: email,
             subject: 'Invitation to be a ' + role,
-            text: 'You\'ve been invited to be a ' + role + "\nPlease follow this link to login on Plexus "
+            text: 'You\'ve been invited to be a ' + role
         };
         return await transporter.sendMail(mailOptions);
 
