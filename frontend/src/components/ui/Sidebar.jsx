@@ -45,6 +45,12 @@ const menuConfigs = {
       path: "/super-admin/team-members",
     },
     {
+      id: "analytics",
+      icon: <RiFileListFill size={24} />,
+      label: "Analytics",
+      path: "/super-admin/analytics",
+    },
+    {
       id: "companies",
       icon: <ImOffice size={24} />,
       label: "Company",
