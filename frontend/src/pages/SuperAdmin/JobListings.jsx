@@ -64,7 +64,7 @@ const JobListings = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
 
-  const [activeTab, setActiveTab] = useState("recruiter_listings");
+  const [activeTab, setActiveTab] = useState("all");
 
   // Fetch job listings
   const { data: jobsData, isLoading } = useQuery({
@@ -139,7 +139,9 @@ const JobListings = () => {
 
   const currentList = React.useMemo(() => {
     if (!jobsData) return [];
-    if (activeTab === "recruiter_listings") return jobsData.inactiveJobs || [];
+    if (activeTab === "all")
+      return [...(jobsData.activeJobs || []), ...(jobsData.inactiveJobs || [])];
+    if (activeTab === "pending") return jobsData.inactiveJobs || [];
     return jobsData.activeJobs || [];
   }, [jobsData, activeTab]);
 
@@ -263,23 +265,33 @@ const JobListings = () => {
           <div className="flex gap-6">
             <button
               className={`pb-2 px-1 text-lg font-semibold transition-colors relative ${
-                activeTab === "recruiter_listings"
+                activeTab === "all"
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted hover:text-dark"
               }`}
-              onClick={() => setActiveTab("recruiter_listings")}
+              onClick={() => setActiveTab("all")}
             >
-              Recruiter Listings
+              All Jobs
             </button>
             <button
               className={`pb-2 px-1 text-lg font-semibold transition-colors relative ${
-                activeTab === "active_jobs"
+                activeTab === "active"
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted hover:text-dark"
               }`}
-              onClick={() => setActiveTab("active_jobs")}
+              onClick={() => setActiveTab("active")}
             >
               Active Jobs
+            </button>
+            <button
+              className={`pb-2 px-1 text-lg font-semibold transition-colors relative ${
+                activeTab === "pending"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted hover:text-dark"
+              }`}
+              onClick={() => setActiveTab("pending")}
+            >
+              Pending Review
             </button>
           </div>
           <div className="flex items-center px-2 rounded-lg bg-dark text-white">

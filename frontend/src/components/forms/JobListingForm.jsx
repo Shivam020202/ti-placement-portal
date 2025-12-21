@@ -50,9 +50,12 @@ const INITIAL_DATA = {
 
 // Add this helper function before getStepValidation
 const calculateTotal = (ctcBreakup) => {
-  return ctcBreakup?.reduce((sum, component) => 
-    sum + (parseFloat(component.amount) || 0), 0
-  ) || 0;
+  return (
+    ctcBreakup?.reduce(
+      (sum, component) => sum + (parseFloat(component.amount) || 0),
+      0
+    ) || 0
+  );
 };
 
 // Add step validation helpers
@@ -60,34 +63,51 @@ const getStepValidation = (step, formData) => {
   switch (step) {
     case 1:
       return {
-        isValid: !!(formData.companyId && formData.title && formData.role && formData.gradYear.length > 0),
-        requiredFields: ['Company', 'Job Title', 'Role Type', 'Graduation Years']
+        isValid: !!(
+          formData.companyId &&
+          formData.title &&
+          formData.role &&
+          formData.gradYear.length > 0
+        ),
+        requiredFields: [
+          "Company",
+          "Job Title",
+          "Role Type",
+          "Graduation Years",
+        ],
       };
     case 2:
       return {
-        isValid: !!(formData.requirements && formData.responsibilities && formData.descriptionText),
-        requiredFields: ['Description', 'Requirements', 'Responsibilities']
+        isValid: !!(
+          formData.requirements &&
+          formData.responsibilities &&
+          formData.descriptionText
+        ),
+        requiredFields: ["Description", "Requirements", "Responsibilities"],
       };
     case 3:
       return {
-        isValid: !!(Object.keys(formData.branchWiseMinCgpa).length > 0 && formData.applicationDeadline),
-        requiredFields: ['Branch CGPA Requirements', 'Application Deadline']
+        isValid: !!(
+          Object.keys(formData.branchWiseMinCgpa).length > 0 &&
+          formData.applicationDeadline
+        ),
+        requiredFields: ["Branch CGPA Requirements", "Application Deadline"],
       };
     case 4: // Location & CTC step
       return {
         isValid: !!(
-          formData.locationOptions?.length > 0 && 
+          formData.locationOptions?.length > 0 &&
           formData.ctc > 0 &&
           // Remove ctcBreakup validation since it's optional
-          (!formData.ctcBreakup?.length || 
+          (!formData.ctcBreakup?.length ||
             Math.abs(formData.ctc - calculateTotal(formData.ctcBreakup)) < 0.01)
         ),
-        requiredFields: ['Location Options', 'CTC']
+        requiredFields: ["Location Options", "CTC"],
       };
     case 5:
       return {
         isValid: !!(formData.workflowData.length > 0),
-        requiredFields: ['Hiring Process Rounds']
+        requiredFields: ["Hiring Process Rounds"],
       };
     default:
       return { isValid: true, requiredFields: [] };
@@ -107,7 +127,7 @@ const JobListingForm = () => {
   // Add states for step validation
   const [stepValidation, setStepValidation] = useState({
     isValid: false,
-    requiredFields: []
+    requiredFields: [],
   });
 
   // Initialize react-hook-form
@@ -177,27 +197,28 @@ const JobListingForm = () => {
       try {
         const validation = getStepValidation(currentStep, formData);
         const draftId = formData.draftId || `draft_${Date.now()}`;
-        
+
         const draftData = {
           id: draftId,
           draftId, // Keep consistent ID
           title: formData.title || "Untitled Job",
           formData: {
             ...formData,
-            draftId // Store draft ID in form data
+            draftId, // Store draft ID in form data
           },
           currentStep,
           lastSaved: new Date().toISOString(),
           progress: calculateProgress(formData),
-          stepsCompleted: steps.map(step => ({
+          stepsCompleted: steps.map((step) => ({
             id: step.id,
-            isComplete: getStepValidation(step.id, formData).isValid
-          }))
+            isComplete: getStepValidation(step.id, formData).isValid,
+          })),
         };
 
         // Update drafts in Recoil state
         const existingDraftIndex = drafts.findIndex(
-          (d) => d.draftId === draftId || d.formData.companyId === formData.companyId
+          (d) =>
+            d.draftId === draftId || d.formData.companyId === formData.companyId
         );
 
         if (existingDraftIndex !== -1) {
@@ -205,12 +226,11 @@ const JobListingForm = () => {
           updatedDrafts[existingDraftIndex] = draftData;
           setDrafts(updatedDrafts);
         } else {
-          setDrafts(prev => [...prev, draftData]);
+          setDrafts((prev) => [...prev, draftData]);
         }
 
         localStorage.setItem("jobDrafts", JSON.stringify(drafts));
         setStepValidation(validation);
-
       } catch (error) {
         Toast.error("Failed to save draft");
       } finally {
@@ -256,19 +276,21 @@ const JobListingForm = () => {
       try {
         // First validate all required fields
         if (!formData.companyId || !formData.title || !formData.role) {
-          throw new Error('Please fill all required basic details');
+          throw new Error("Please fill all required basic details");
         }
 
         if (!formData.applicationDeadline) {
-          throw new Error('Application deadline is required');
+          throw new Error("Application deadline is required");
         }
 
         // Format the application deadline
         let applicationDeadline;
         try {
-          applicationDeadline = new Date(formData.applicationDeadline).toISOString();
+          applicationDeadline = new Date(
+            formData.applicationDeadline
+          ).toISOString();
         } catch (error) {
-          throw new Error('Invalid application deadline format');
+          throw new Error("Invalid application deadline format");
         }
 
         const payload = {
@@ -278,61 +300,63 @@ const JobListingForm = () => {
             requirements: formData.requirements,
             responsibilities: formData.responsibilities,
             descriptionText: formData.descriptionText,
-            descriptionFile: formData.descriptionFile || '',
+            descriptionFile: formData.descriptionFile || "",
             webLinks: formData.webLinks || [],
             role: formData.role,
             gradYear: formData.gradYear || [],
             failedSubjects: parseInt(formData.failedSubjects) || 0,
-            activeBacklogsAcceptable: Boolean(formData.activeBacklogsAcceptable),
+            activeBacklogsAcceptable: Boolean(
+              formData.activeBacklogsAcceptable
+            ),
             applicationDeadline: applicationDeadline,
             bondInYrs: parseInt(formData.bondInYrs) || 0,
             remoteWork: Boolean(formData.remoteWork),
             locationOptions: formData.locationOptions || [],
             ctc: parseFloat(formData.ctc) || 0,
             ctcBreakup: formData.ctcBreakup || [],
-            workflowData: formData.workflowData || []
+            workflowData: formData.workflowData || [],
           },
-          branchWiseMinCgpa: formData.branchWiseMinCgpa || {}
+          branchWiseMinCgpa: formData.branchWiseMinCgpa || {},
         };
 
-        console.log('Submitting job data:', payload);
+        console.log("Submitting job data:", payload);
 
         const response = await axios.post(
-          `${import.meta.env.VITE_URI}/super-admin/job`,
+          `${import.meta.env.VITE_URI}/super-admin/job/create`,
           payload,
           {
             headers: {
-              'Authorization': auth.token, // Remove Bearer prefix if already included
-              'Content-Type': 'application/json'
-            }
+              Authorization: auth.token,
+              "Content-Type": "application/json",
+            },
           }
         );
 
-        console.log('Job creation response:', response);
+        console.log("Job creation response:", response);
 
         if (!response.data) {
-          throw new Error('No response received from server');
+          throw new Error("No response received from server");
         }
 
         return response.data;
       } catch (error) {
-        console.error('Job creation error:', {
+        console.error("Job creation error:", {
           error: error.message,
           response: error.response?.data,
           status: error.response?.status,
-          data: formData
+          data: formData,
         });
         throw error; // Throw the original error to preserve the message
       }
     },
     onSuccess: (data) => {
       Toast.success("Job listing created successfully");
-      queryClient.invalidateQueries(['job-listings']);
-      navigate('/super-admin/job-listings');
+      queryClient.invalidateQueries(["job-listings"]);
+      navigate("/super-admin/job-listings");
     },
     onError: (error) => {
       Toast.error(error.message || "Failed to create job listing");
-    }
+    },
   });
 
   const onSubmit = async (data) => {
@@ -340,21 +364,21 @@ const JobListingForm = () => {
       // Validate form data before submitting
       const validation = getStepValidation(currentStep, formData);
       if (!validation.isValid) {
-        Toast.error(`Please complete: ${validation.requiredFields.join(', ')}`);
+        Toast.error(`Please complete: ${validation.requiredFields.join(", ")}`);
         return;
       }
-      
-      console.log('Submitting form data:', formData); // Use formData instead of data
+
+      console.log("Submitting form data:", formData); // Use formData instead of data
       await createJobMutation.mutateAsync(formData);
     } catch (error) {
-      console.error('Form submission error:', error);
+      console.error("Form submission error:", error);
     }
   };
 
   // Update step click handler
   const handleStepClick = async (e, stepId) => {
     e.preventDefault();
-    
+
     // Always allow going back
     if (stepId < currentStep) {
       setCurrentStep(stepId);
@@ -364,7 +388,7 @@ const JobListingForm = () => {
     // Check if current step is valid before allowing forward navigation
     const validation = getStepValidation(currentStep, formData);
     if (!validation.isValid) {
-      Toast.error(`Please complete: ${validation.requiredFields.join(', ')}`);
+      Toast.error(`Please complete: ${validation.requiredFields.join(", ")}`);
       return;
     }
 
@@ -374,16 +398,20 @@ const JobListingForm = () => {
   // Update next button handler
   const handleNext = async () => {
     const validation = getStepValidation(currentStep, formData);
-    
+
     if (!validation.isValid) {
-      Toast.error(`Please complete required fields: ${validation.requiredFields.join(', ')}`);
+      Toast.error(
+        `Please complete required fields: ${validation.requiredFields.join(
+          ", "
+        )}`
+      );
       return;
     }
 
     if (currentStep === steps.length) {
       handleSubmit(onSubmit)();
     } else {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep((prev) => prev + 1);
     }
   };
 
@@ -464,7 +492,12 @@ const JobListingForm = () => {
                   </button>
                   {step.id < currentStep && (
                     <span className="text-xs text-green-500">
-                      Completed {new Date(drafts.find(d => d.formData.draftId === formData.draftId)?.lastSaved).toLocaleDateString()}
+                      Completed{" "}
+                      {new Date(
+                        drafts.find(
+                          (d) => d.formData.draftId === formData.draftId
+                        )?.lastSaved
+                      ).toLocaleDateString()}
                     </span>
                   )}
                 </div>

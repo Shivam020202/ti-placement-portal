@@ -1,5 +1,17 @@
 const router = require("express").Router();
 const adminController = require("../../controllers/jobListings/admin");
+const upload = require("../../config/multer");
+
+// Create a new job listing (Super Admins)
+// Supports both with and without file upload
+router.post(
+  "/",
+  upload("./uploads/job_description"),
+  adminController.createJobListing
+);
+
+// Create job without file upload (json only)
+router.post("/create", adminController.createJobListingJson);
 
 // Get all jobs page data (active and inactive)
 router.get("/job-page", adminController.getJobPageData);

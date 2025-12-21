@@ -3,185 +3,283 @@ import DashboardLayout from "../../components/layouts/Dashboard";
 import { useRecoilValue } from "recoil";
 import { authState } from "../../store/atoms/authAtom";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import axios from "@/utils/axiosConfig";
+import { Link } from "react-router-dom";
 import {
   RiBuilding2Line,
   RiMapPinLine,
   RiTimeLine,
   RiUser3Line,
+  RiBriefcaseLine,
+  RiCheckLine,
+  RiEditLine,
+  RiFileListLine,
+  RiAddLine,
 } from "react-icons/ri";
-
-const mockPendingJobs = [
-  {
-    id: 1,
-    title: "Software Engineer",
-    company: { name: "Google", logo: "frontend\src\assets\googl.webp" },
-    locationOptions: ["Bangalore", "Hyderabad"],
-    createdAt: new Date(),
-    type: "Full Time",
-    mode: "Remote",
-    batch: "2024",
-  },
-  {
-    id: 2,
-    title: "Software Engineer",
-    company: { name: "Google", logo: "frontend\src\assets\googl.webp" },
-    locationOptions: ["Bangalore", "Hyderabad"],
-    createdAt: new Date(),
-    type: "Full Time",
-    mode: "Remote",
-    batch: "2024",
-  },
-];
-
-const mockActiveJobs = [
-  {
-    id: 1,
-    title: "Frontend Developer",
-    company: { name: "Microsoft", logo: "/company-logos/microsoft.png" },
-    locationOptions: ["Mumbai", "Pune"],
-    createdAt: new Date(),
-    type: "Internship",
-    mode: "Hybrid",
-    batch: "2025",
-  },
-  {
-    id: 2,
-    title: "Frontend Developer",
-    company: { name: "Microsoft", logo: "/company-logos/microsoft.png" },
-    locationOptions: ["Mumbai", "Pune"],
-    createdAt: new Date(),
-    type: "Internship",
-    mode: "Hybrid",
-    batch: "2025",
-  },
-  {
-    id: 3,
-    title: "Frontend Developer",
-    company: { name: "Microsoft", logo: "/company-logos/microsoft.png" },
-    locationOptions: ["Mumbai", "Pune"],
-    createdAt: new Date(),
-    type: "Internship",
-    mode: "Hybrid",
-    batch: "2025",
-  },
-];
-
-const mockBranchStats = {
-  CSE: {
-    totalPlaced: 150,
-    placementRate: 85,
-    totalCompanies: 25,
-  },
-  IT: {
-    totalPlaced: 120,
-    placementRate: 80,
-    totalCompanies: 20,
-  },
-};
 
 const Dashboard = () => {
   const auth = useRecoilValue(authState);
   const [selectedBranch, setSelectedBranch] = useState("");
   const [date, setDate] = useState(new Date());
 
-  const { data: assignedJobs = mockPendingJobs } = useQuery({
-    queryKey: ["assigned-jobs"],
+  // Fetch job page data
+  const { data: jobsData, isLoading: jobsLoading } = useQuery({
+    queryKey: ["super-admin-jobs-dashboard"],
     queryFn: async () => {
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_URI}/super-admin/job/job-page`,
-          {
-            headers: {
-              Authorization: `Bearer ${auth.token}`,
-            },
-          }
-        );
-        return response.data?.inactiveJobs || mockPendingJobs;
-      } catch (error) {
-        console.error("Error fetching assigned jobs:", error);
-        return mockPendingJobs;
-      }
+      const response = await axios.get(
+        `${
+          import.meta.env.VITE_URI
+        }/super-admin/job/job-page?inactiveLimit=5&activeLimit=5`
+      );
+      return response.data;
+    },
+    enabled: !!auth.token,
+  });
+
+  const { data: branchStats } = useQuery({
+    queryKey: ["branch-stats", selectedBranch],
+    enabled: !!selectedBranch && !!auth.token,
+    queryFn: async () => {
+      const response = await axios.get(
+        `${import.meta.env.VITE_URI}/super-admin/branch/${selectedBranch}/stats`
+      );
+      return response.data;
     },
   });
 
-  const { data: branchStats = mockBranchStats[selectedBranch] } = useQuery({
-    queryKey: ["branch-stats", selectedBranch],
-    enabled: !!selectedBranch,
-    queryFn: async () => {
-      try {
-        const response = await axios.get(
-          `${
-            import.meta.env.VITE_URI
-          }/super-admin/branch/${selectedBranch}/stats`,
-          {
-            headers: {
-              Authorization: `Bearer ${auth.token}`,
-            },
-          }
-        );
-        return response.data || mockBranchStats[selectedBranch];
-      } catch (error) {
-        console.error("Error fetching branch stats:", error);
-        return mockBranchStats[selectedBranch];
-      }
-    },
+  // Normalize job data for display
+  const normalizeJob = (job) => ({
+    id: job.id,
+    title: job.title || job.jobTitle,
+    company: job.Company || { name: "Unknown", logo: null },
+    locationOptions: job.locationOptions || [],
+    createdAt: job.createdAt,
+    type: job.role || "Full Time",
+    mode: job.remoteWork ? "Remote" : "On-site",
+    batch: job.gradYear?.[0] || "2024",
+    status: job.Review?.status || "under_review",
   });
+
+  const pendingJobs = (jobsData?.inactiveJobs || []).map(normalizeJob);
+  const activeJobs = (jobsData?.activeJobs || []).map(normalizeJob);
+  const metrics = jobsData?.metrices || {
+    totalListings: 0,
+    liveListings: 0,
+    Companies: 0,
+  };
 
   return (
     <DashboardLayout>
-      <div className="flex h-[80vh] gap-6">
-        <div className="flex flex-col h-full gap-6 w-[70%]">
-          {/* Pending Requests Card - Taller */}
-          <div className="bg-white rounded-xl p-6 h-[45%] flex flex-col">
-            <h2 className="text-xl font-semibold mb-4">Listing Requests</h2>
-            <div className="flex-1 overflow-y-auto scrollbar-hide">
-              <div className="space-y-3 pr-2">
-                {assignedJobs.map((job) => (
-                  <JobCard key={job.id} job={job} />
-                ))}
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted text-sm">Total Listings</p>
+                <p className="text-3xl font-bold text-dark mt-1">
+                  {jobsLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    metrics.totalListings
+                  )}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <RiFileListLine className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </div>
 
-          {/* Active Listings Card - Shorter */}
-          <div className="bg-white rounded-xl p-6 h-[51.5%] flex flex-col">
-            <h2 className="text-xl font-semibold mb-4">Active Listings</h2>
-            <div className="flex-1 overflow-y-auto scrollbar-hide">
-              <div className="space-y-3 pr-2">
-                {mockActiveJobs.map((job) => (
-                  <JobCard key={job.id} job={job} />
-                ))}
+          <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted text-sm">Active Jobs</p>
+                <p className="text-3xl font-bold text-dark mt-1">
+                  {jobsLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    metrics.liveListings
+                  )}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <RiCheckLine className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted text-sm">Pending Review</p>
+                <p className="text-3xl font-bold text-dark mt-1">
+                  {jobsLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    pendingJobs.length
+                  )}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                <RiEditLine className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted text-sm">Companies</p>
+                <p className="text-3xl font-bold text-dark mt-1">
+                  {jobsLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    metrics.Companies
+                  )}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <RiBuilding2Line className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column */}
-        <div className="flex flex-col h-full w-[30%] gap-6">
-          {/* Calendar Card - Taller */}
-          <div className="rounded-xl overflow-hidden h-[55%] bg-dark">
-            <div className="calendar h-full flex flex-col">
-              <div className="calendar-header bg-dark text-white py-2 text-center flex-shrink-0">
-                {date.toLocaleString("default", {
-                  month: "long",
-                  year: "numeric",
-                })}
+        {/* Quick Actions */}
+        <div className="flex gap-4">
+          <Link to="/super-admin/create-job" className="btn btn-primary gap-2">
+            <RiAddLine className="w-5 h-5" />
+            Create New Job
+          </Link>
+          <Link
+            to="/super-admin/job-listings"
+            className="btn btn-outline gap-2"
+          >
+            <RiFileListLine className="w-5 h-5" />
+            View All Jobs
+          </Link>
+        </div>
+
+        <div className="flex h-[60vh] gap-6">
+          <div className="flex flex-col h-full gap-6 w-[70%]">
+            {/* Pending Requests Card */}
+            <div className="bg-white rounded-xl p-6 h-[50%] flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Pending Reviews</h2>
+                <Link
+                  to="/super-admin/job-listings"
+                  className="text-primary text-sm font-medium"
+                >
+                  View All
+                </Link>
               </div>
-              <CalendarGrid date={date} setDate={setDate} />
+              <div className="flex-1 overflow-y-auto scrollbar-hide">
+                {jobsLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="animate-pulse flex gap-4 p-4 bg-background rounded-lg"
+                      >
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : pendingJobs.length > 0 ? (
+                  <div className="space-y-3 pr-2">
+                    {pendingJobs.map((job) => (
+                      <JobCard key={job.id} job={job} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <RiCheckLine className="w-12 h-12 text-green-400 mb-3" />
+                    <p className="text-muted">No pending reviews</p>
+                    <p className="text-xs text-muted mt-1">
+                      All job listings have been reviewed
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Active Listings Card */}
+            <div className="bg-white rounded-xl p-6 h-[50%] flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Active Listings</h2>
+                <Link
+                  to="/super-admin/job-listings"
+                  className="text-primary text-sm font-medium"
+                >
+                  View All
+                </Link>
+              </div>
+              <div className="flex-1 overflow-y-auto scrollbar-hide">
+                {jobsLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="animate-pulse flex gap-4 p-4 bg-background rounded-lg"
+                      >
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : activeJobs.length > 0 ? (
+                  <div className="space-y-3 pr-2">
+                    {activeJobs.map((job) => (
+                      <JobCard key={job.id} job={job} showStatus />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <RiBriefcaseLine className="w-12 h-12 text-gray-300 mb-3" />
+                    <p className="text-muted">No active listings</p>
+                    <p className="text-xs text-muted mt-1">
+                      Approve job listings to see them here
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Branch Stats Card - Shorter */}
-          <div className="rounded-xl h-[45%]">
-            <div className="flex pl-4 pr-1 py-1 rounded-xl justify-between bg-white w-[full] items-center mb-4">
-              <h2 className="text-md">Branch Statistics</h2>
-              <BranchSelector
-                selectedBranch={selectedBranch}
-                setSelectedBranch={setSelectedBranch}
-              />
+          {/* Right Column */}
+          <div className="flex flex-col h-full w-[30%] gap-6">
+            {/* Calendar Card */}
+            <div className="rounded-xl overflow-hidden h-[55%] bg-dark">
+              <div className="calendar h-full flex flex-col">
+                <div className="calendar-header bg-dark text-white py-2 text-center flex-shrink-0">
+                  {date.toLocaleString("default", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </div>
+                <CalendarGrid date={date} setDate={setDate} />
+              </div>
             </div>
-            <BranchStats stats={branchStats} />
+
+            {/* Branch Stats Card */}
+            <div className="rounded-xl h-[45%]">
+              <div className="flex pl-4 pr-1 py-1 rounded-xl justify-between bg-white w-[full] items-center mb-4">
+                <h2 className="text-md">Branch Statistics</h2>
+                <BranchSelector
+                  selectedBranch={selectedBranch}
+                  setSelectedBranch={setSelectedBranch}
+                />
+              </div>
+              <BranchStats stats={branchStats} />
+            </div>
           </div>
         </div>
       </div>
@@ -190,22 +288,31 @@ const Dashboard = () => {
 };
 
 // Helper Components
-const JobCard = ({ job }) => (
-  <div className="bg-background p-4 rounded-lg mb-3 cursor-pointer hover:shadow-md transition-shadow">
+const JobCard = ({ job, showStatus = false }) => (
+  <Link
+    to={`/super-admin/job-listings`}
+    className="bg-background p-4 rounded-lg mb-3 cursor-pointer hover:shadow-md transition-shadow block"
+  >
     <div className="flex items-center gap-4">
-      <img
-        src={job.company?.logo}
-        alt={job.company?.name}
-        className="w-12 h-12 rounded-lg object-contain"
-      />
-      <div>
+      <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center shadow-sm overflow-hidden">
+        {job.company?.logo ? (
+          <img
+            src={job.company.logo}
+            alt={job.company?.name}
+            className="w-10 h-10 object-contain"
+          />
+        ) : (
+          <RiBuilding2Line className="w-6 h-6 text-gray-400" />
+        )}
+      </div>
+      <div className="flex-1">
         <h3 className="text-lg font-semibold">{job.title}</h3>
         <div className="text-sm text-muted flex items-center gap-4">
           <span className="flex items-center gap-1">
             <RiBuilding2Line /> {job.company?.name}
           </span>
           <span className="flex items-center gap-1">
-            <RiMapPinLine /> {job.locationOptions?.join(", ")}
+            <RiMapPinLine /> {job.locationOptions?.join(", ") || "N/A"}
           </span>
           <span className="flex items-center gap-1">
             <RiTimeLine /> {new Date(job.createdAt).toLocaleDateString()}
@@ -215,20 +322,39 @@ const JobCard = ({ job }) => (
           <span className="badge badge-ghost">{job.type}</span>
           <span className="badge badge-ghost">{job.mode}</span>
           <span className="badge badge-ghost">{job.batch}</span>
+          {showStatus && (
+            <span
+              className={`badge ${
+                job.status === "approved"
+                  ? "badge-success"
+                  : job.status === "changes_requested"
+                  ? "badge-warning"
+                  : job.status === "rejected"
+                  ? "badge-error"
+                  : "badge-info"
+              }`}
+            >
+              {job.status === "approved"
+                ? "Approved"
+                : job.status === "changes_requested"
+                ? "Changes Requested"
+                : job.status === "rejected"
+                ? "Rejected"
+                : "Under Review"}
+            </span>
+          )}
         </div>
       </div>
     </div>
-  </div>
+  </Link>
 );
 
 const CalendarGrid = ({ date, setDate }) => {
-  // Get first day of month and days in month
   const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
   const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
   const daysInMonth = lastDay.getDate();
   const startingDay = firstDay.getDay();
 
-  // Create calendar days array
   let days = [];
   let day = 1;
 
@@ -244,29 +370,32 @@ const CalendarGrid = ({ date, setDate }) => {
   return (
     <div className="bg-dark text-white rounded-b-xl h-[calc(100%-2.5rem)] p-2">
       <div className="grid grid-cols-7 gap-1 h-full">
-        {/* Day Headers */}
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div 
-            key={day} 
+          <div
+            key={day}
             className="text-red text-center text-xs font-medium h-6 flex items-center justify-center"
           >
-            {day.slice(0,1)}
+            {day.slice(0, 1)}
           </div>
         ))}
 
-        {/* Calendar Days */}
         {days.map((dayNum, i) => {
           if (!dayNum) {
             return (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className="h-6 flex items-center justify-center text-xs"
               />
             );
           }
 
-          const currentDate = new Date(date.getFullYear(), date.getMonth(), dayNum);
-          const isToday = currentDate.toDateString() === new Date().toDateString();
+          const currentDate = new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            dayNum
+          );
+          const isToday =
+            currentDate.toDateString() === new Date().toDateString();
           const isSelected = currentDate.toDateString() === date.toDateString();
 
           return (
@@ -276,8 +405,12 @@ const CalendarGrid = ({ date, setDate }) => {
               className={`
                 h-6 w-6 mx-auto flex items-center justify-center rounded-full text-xs
                 transition-colors duration-200
-                ${isToday ? 'bg-red text-white hover:bg-red/90' : 'hover:bg-muted'}
-                ${isSelected && !isToday ? 'border border-red' : ''}
+                ${
+                  isToday
+                    ? "bg-red text-white hover:bg-red/90"
+                    : "hover:bg-muted"
+                }
+                ${isSelected && !isToday ? "border border-red" : ""}
               `}
             >
               {dayNum}

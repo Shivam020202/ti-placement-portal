@@ -70,6 +70,58 @@ const createJobListing = async (req, res, next) => {
   }
 };
 
+// CREATE JOBS (JSON only - no file upload required)
+const createJobListingJson = async (req, res, next) => {
+  const { companyId, jobListingData, branchWiseMinCgpa } = req.body;
+  const user = res.locals.user;
+
+  try {
+    console.log("Creating job for company:", companyId);
+    console.log("Job data:", jobListingData);
+
+    if (!companyId) {
+      throw new HttpError(HttpCodes.BAD_REQUEST, "Company ID is required");
+    }
+
+    const company = await Company.findByPk(companyId);
+
+    if (!company) {
+      throw new HttpError(HttpCodes.NOT_FOUND, "Company not found");
+    }
+
+    // Validate required fields
+    if (!jobListingData.title) {
+      throw new HttpError(HttpCodes.BAD_REQUEST, "Job title is required");
+    }
+
+    if (!jobListingData.role) {
+      throw new HttpError(HttpCodes.BAD_REQUEST, "Job role is required");
+    }
+
+    // Set default description file if not provided
+    if (!jobListingData.descriptionFile) {
+      jobListingData.descriptionFile = "";
+    }
+
+    // Ensure workflowData is an array
+    if (!Array.isArray(jobListingData.workflowData)) {
+      jobListingData.workflowData = [];
+    }
+
+    const jobListed = await services.createJob(
+      user,
+      company,
+      jobListingData,
+      branchWiseMinCgpa || {}
+    );
+
+    return respond(res, HttpCodes.CREATED, "Job Listing created", jobListed);
+  } catch (error) {
+    console.error("Job creation error:", error);
+    next(error);
+  }
+};
+
 // VERIFY JOBS
 // UPDATE JOB STATUS
 async function updateJobStatus(req, res, next) {
@@ -531,6 +583,7 @@ const removeAdminFromListing = async (req, res, next) => {
 module.exports = {
   getAllJobListings,
   createJobListing,
+  createJobListingJson,
   updateJobStatus,
   getUnverifiedJobs,
   deleteJobListingById,
