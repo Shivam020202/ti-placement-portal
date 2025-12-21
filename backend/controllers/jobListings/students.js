@@ -143,36 +143,14 @@ async function appliedToJob(req, res, next) {
     });
     if (!existingResume) throw new Error("Invalid Resume Id for this student");
 
-    let resumeLink;
-
-    // Check if resume is stored in database (new way) or Firebase (old way)
-    if (existingResume.fileData) {
-      // New resume stored in database - use resume name/id as reference
-      // The recruiter can download from our API when needed
-      resumeLink = `Resume: ${existingResume.name} (ID: ${existingResume.id})`;
-    } else if (existingResume.url) {
-      // Old Firebase-stored resume - use the existing URL or try to upload to Drive
-      try {
-        const blob = ref(bucket, existingResume.url);
-        const tempFilePath = `${process.env.TEMP_FILE_PATH || "/tmp"}/${
-          existingResume.name
-        }`;
-        await downloadFileFromFirebase(blob, tempFilePath);
-        resumeLink = await uploadFileToDrive(tempFilePath, existingResume.name);
-      } catch (driveError) {
-        console.error(
-          "Google Drive upload failed, using Firebase URL:",
-          driveError.message
-        );
-        resumeLink = existingResume.url;
-      }
-    } else {
-      throw new Error("Resume file not found");
-    }
+    const blob = ref(bucket, existingResume.url);
+    const tempFilePath = `${process.env.TEMP_FILE_PATH}/${existingResume.name}`;
+    await downloadFileFromFirebase(blob, tempFilePath);
+    const resume = await uploadFileToDrive(tempFilePath, existingResume.name);
 
     const newJob = await job.addStudent(std, {
       through: {
-        resume: resumeLink,
+        resume,
         coverLetter,
         personalEmail,
         stdCgpa: std.cgpa,

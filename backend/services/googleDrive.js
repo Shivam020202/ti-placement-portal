@@ -63,15 +63,4 @@ async function getFileFromDrive(fileId) {
 }
 
 
-
-
-const downloadFileFromFirebase = async (blob, destPath) => {
-    const file = require('fs').createWriteStream(destPath);
-    const storage = require('firebase/storage');
-    const getBytes = await storage.getBytes(blob);
-    file.write(Buffer.from(getBytes), (err) => {
-        if (err) throw err;
-    });
-};
-
-module.exports = { uploadFileToDrive, downloadFileFromFirebase };
+module.exports = { uploadFileToDrive };
