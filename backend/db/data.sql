@@ -21,14 +21,11 @@ INSERT INTO super_admins (user, created_at, updated_at) VALUES
 
 -- Insert Branches
 INSERT INTO branches (code, name) VALUES
-('CSE', 'Computer Science and Engineeringggg'),
 ('ENC', 'electronics and communication'),
-('ECE', 'Electronics and Communication Engineering');
+('ECE', 'Electronics and Communication Engineering'),
 ('ME', 'Mechanical Engineering'),
 ('CE', 'Civil Engineering'),
-('EE', 'Electrical Engineering');
-('CE', 'Civil Engineering'),
-('EE', 'Electrical Engineering');
+('EE', 'Electrical Engineering'),
 ('CIVIL', 'Civil Engineering'),
 ('EEE', 'Electrical and Electronics Engineering');
 
