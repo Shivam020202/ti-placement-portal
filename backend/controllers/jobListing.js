@@ -4,9 +4,6 @@ const { HttpError, HttpCodes, respond } = require("../config/http");
 const { Student, Company, JobListing, Branch, HiringProcess, GroupDiscussion, CodingRound, Interview, PPT, Resume } = require("../models");
 const ListingReview = require("../models/listingReview");
 const services = require('../services/jobListings');
-const { bucket } = require("../config/firebase");
-const { ref } = require("firebase/storage");
-const { downloadFileFromFirebase, uploadFileToDrive } = require("../services/googleDrive");
 
 
 

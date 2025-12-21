@@ -77,10 +77,7 @@ const invite = async (req, res, next) => {
       to: email,
       subject: "Invitation to be a " + role,
       text:
-        "You've been invited to be a " +
-        role +
-        "\nPlease follow this link to login on Plexus " +
-        link,
+        "You've been invited to be a " + role,
     };
     await transporter.sendMail(mailOptions);
     respond(res, HttpCodes.OK, "User invited", user);

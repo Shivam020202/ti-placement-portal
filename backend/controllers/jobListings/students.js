@@ -1,9 +1,6 @@
 const { Op, where } = require("sequelize");
 const { Company, JobListing, Branch, Resume, HiringProcess, GroupDiscussion, CodingRound, Interview, PPT, AppliedToJob, Student } = require("../../models");
 const services = require('../../services/jobListings');
-const { bucket } = require("../../config/firebase");
-const { ref } = require("firebase/storage");
-const { downloadFileFromFirebase, uploadFileToDrive } = require("../../services/googleDrive");
 const ListingReview = require("../../models/listingReview");
 const { respond, HttpCodes, HttpError } = require("../../config/http");
 
@@ -137,10 +134,12 @@ async function appliedToJob(req, res, next) {
         });
         if (!existingResume) throw new Error("Invalid Resume Id for this student");
 
-        const blob = ref(bucket, existingResume.url);
-        const tempFilePath = `${process.env.TEMP_FILE_PATH}/${existingResume.name}`;
-        await downloadFileFromFirebase(blob, tempFilePath);
-        const resume = await uploadFileToDrive(tempFilePath, existingResume.name);
+        if (!existingResume.fileData) {
+            throw new Error("Resume file data not found locally. Please re-upload your resume and try again.");
+        }
+
+        // Store the resume record id as reference (since file data is kept in DB)
+        const resume = existingResume.id.toString();
 
         const newJob = await job.addStudent(
             std,
