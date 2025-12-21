@@ -15,6 +15,9 @@ import {
   RiEditLine,
   RiFileListLine,
   RiAddLine,
+  RiGroupLine,
+  RiFileList2Line,
+  RiAlertLine,
 } from "react-icons/ri";
 
 const Dashboard = () => {
@@ -65,13 +68,18 @@ const Dashboard = () => {
   const metrics = jobsData?.metrices || {
     totalListings: 0,
     liveListings: 0,
+    pendingListings: 0,
+    changesRequested: 0,
+    rejectedListings: 0,
     Companies: 0,
+    totalStudents: 0,
+    totalApplications: 0,
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Stats Cards */}
+        {/* Stats Cards - Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between">
@@ -95,7 +103,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted text-sm">Active Jobs</p>
-                <p className="text-3xl font-bold text-dark mt-1">
+                <p className="text-3xl font-bold text-green-600 mt-1">
                   {jobsLoading ? (
                     <span className="loading loading-spinner loading-sm"></span>
                   ) : (
@@ -113,11 +121,11 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted text-sm">Pending Review</p>
-                <p className="text-3xl font-bold text-dark mt-1">
+                <p className="text-3xl font-bold text-yellow-600 mt-1">
                   {jobsLoading ? (
                     <span className="loading loading-spinner loading-sm"></span>
                   ) : (
-                    pendingJobs.length
+                    metrics.pendingListings
                   )}
                 </p>
               </div>
@@ -127,6 +135,27 @@ const Dashboard = () => {
             </div>
           </div>
 
+          <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted text-sm">Changes Requested</p>
+                <p className="text-3xl font-bold text-orange-600 mt-1">
+                  {jobsLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    metrics.changesRequested
+                  )}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                <RiAlertLine className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards - Row 2 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -141,6 +170,60 @@ const Dashboard = () => {
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                 <RiBuilding2Line className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted text-sm">Total Students</p>
+                <p className="text-3xl font-bold text-dark mt-1">
+                  {jobsLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    metrics.totalStudents
+                  )}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                <RiGroupLine className="w-6 h-6 text-indigo-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted text-sm">Total Applications</p>
+                <p className="text-3xl font-bold text-dark mt-1">
+                  {jobsLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    metrics.totalApplications
+                  )}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
+                <RiFileList2Line className="w-6 h-6 text-cyan-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted text-sm">Rejected Listings</p>
+                <p className="text-3xl font-bold text-red-600 mt-1">
+                  {jobsLoading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    metrics.rejectedListings
+                  )}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                <RiBriefcaseLine className="w-6 h-6 text-red-600" />
               </div>
             </div>
           </div>

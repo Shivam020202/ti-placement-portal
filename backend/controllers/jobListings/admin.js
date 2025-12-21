@@ -297,17 +297,46 @@ async function getJobPageData(req, res, next) {
     : null;
 
   try {
+    // Basic counts
     const Companies = await Company.count();
     const totalListings = await JobListing.count();
+
+    // Count by status
     const liveListings = await JobListing.count({
       include: {
         model: ListingReview,
         as: "Review",
-        where: {
-          status: "approved",
-        },
+        where: { status: "approved" },
       },
     });
+
+    const pendingListings = await JobListing.count({
+      include: {
+        model: ListingReview,
+        as: "Review",
+        where: { status: "under_review" },
+      },
+    });
+
+    const changesRequested = await JobListing.count({
+      include: {
+        model: ListingReview,
+        as: "Review",
+        where: { status: "changes_requested" },
+      },
+    });
+
+    const rejectedListings = await JobListing.count({
+      include: {
+        model: ListingReview,
+        as: "Review",
+        where: { status: "rejected" },
+      },
+    });
+
+    // Count students and applications
+    const totalStudents = await Student.count();
+    const totalApplications = await AppliedToJob.count();
 
     const activeJobsQuery = {
       include: [
@@ -349,16 +378,17 @@ async function getJobPageData(req, res, next) {
     if (inactiveLimit) inactiveJobsQuery.limit = inactiveLimit;
     const inactiveJobs = await JobListing.findAll(inactiveJobsQuery);
 
-    // activeJobs.forEach(job =>
-    //     job.HiringProcesses = services.refactorHP(job.HiringProcesses)
-    // )
-
-    // inactiveJobs.forEach(job =>
-    //     job.HiringProcesses = services.refactorHP(job.HiringProcesses)
-    // );
-
     res.status(200).json({
-      metrices: { totalListings, liveListings, Companies },
+      metrices: {
+        totalListings,
+        liveListings,
+        pendingListings,
+        changesRequested,
+        rejectedListings,
+        Companies,
+        totalStudents,
+        totalApplications,
+      },
       activeJobs,
       inactiveJobs,
     });
