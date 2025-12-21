@@ -52,6 +52,18 @@ const menuConfigs = {
       path: "/student/dashboard",
     },
     {
+      id: "jobs",
+      icon: <RiBriefcaseFill size={24} />,
+      label: "Job Listings",
+      path: "/student/jobs",
+    },
+    {
+      id: "applications",
+      icon: <RiFileListFill size={24} />,
+      label: "My Applications",
+      path: "/student/applications",
+    },
+    {
       id: "profile",
       icon: <RiFileUserFill size={24} />,
       label: "Profile",
