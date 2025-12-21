@@ -89,9 +89,12 @@ async function createJob(user, company, jobListingData, branchWiseMinCgpa) {
       });
     }
 
-    jobListingData.workflowData.forEach(async (item) => {
-      await createHP(item, jobListed);
-    });
+    // Use for...of with index to handle async properly and pass index
+    for (let i = 0; i < jobListingData.workflowData.length; i++) {
+      const item = jobListingData.workflowData[i];
+      // Pass the index to createHP (use item.index if provided, otherwise use array index)
+      await createHP({ ...item, index: item.index ?? i + 1 }, jobListed);
+    }
 
     let branchDataErrors = [];
     Object.keys(branchWiseMinCgpa).forEach(async (branchCode) => {
