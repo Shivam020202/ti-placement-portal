@@ -38,41 +38,47 @@ const Dashboard = ({ children }) => {
   };
 
   const getSearchPlaceholder = () => {
-    if (location.pathname.includes('team-members')) {
-      return 'Search team members...';
+    if (location.pathname.includes("team-members")) {
+      return "Search team members...";
     }
-    if (location.pathname.includes('job-listings')) {
-      return 'Search job listings...';
+    if (location.pathname.includes("job-listings")) {
+      return "Search job listings...";
     }
-    if (location.pathname.includes('companies')) {
-      return 'Search companies...';
+    if (location.pathname.includes("companies")) {
+      return "Search companies...";
     }
-    return 'Search...';
+    return "Search...";
   };
 
   const handleSearch = (term) => {
     setSearchTerm(term);
-    
-    if (location.pathname.includes('team-members')) {
-      window.dispatchEvent(new CustomEvent('searchTeamMembers', { 
-        detail: { searchTerm: term } 
-      }));
-    } else if (location.pathname.includes('job-listings')) {
-      window.dispatchEvent(new CustomEvent('searchJobs', { 
-        detail: { searchTerm: term } 
-      }));
-    } else if (location.pathname.includes('companies')) {
-      window.dispatchEvent(new CustomEvent('searchCompanies', { 
-        detail: { searchTerm: term } 
-      }));
+
+    if (location.pathname.includes("team-members")) {
+      window.dispatchEvent(
+        new CustomEvent("searchTeamMembers", {
+          detail: { searchTerm: term },
+        })
+      );
+    } else if (location.pathname.includes("job-listings")) {
+      window.dispatchEvent(
+        new CustomEvent("searchJobs", {
+          detail: { searchTerm: term },
+        })
+      );
+    } else if (location.pathname.includes("companies")) {
+      window.dispatchEvent(
+        new CustomEvent("searchCompanies", {
+          detail: { searchTerm: term },
+        })
+      );
     }
   };
 
   return (
-    <div className="flex gap-14 w-full h-full">
+    <div className="flex gap-14 w-full h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex flex-col gap-10 w-full mr-16">
-        <div className="mt-5 w-full flex items-center justify-between gap-10">
+      <main className="flex flex-col w-full mr-16 h-full overflow-hidden">
+        <div className="mt-5 w-full flex items-center justify-between gap-10 flex-shrink-0">
           <div className="flex-1">
             <h1 className="text-2xl font-semibold">Hi, {auth.user.fullName}</h1>
             <p className="text-muted">
@@ -90,8 +96,8 @@ const Dashboard = ({ children }) => {
             />
           </label>
           {auth.user.role === "super-admin" ? (
-            <button 
-              onClick={() => setShowDraftModal(true)} 
+            <button
+              onClick={() => setShowDraftModal(true)}
               className="flex items-center p-4 gap-2 h-14 hover:bg-dark rounded-full bg-primary text-white"
             >
               <IoIosAddCircle size={24} />
@@ -106,8 +112,10 @@ const Dashboard = ({ children }) => {
             </button>
           )}
         </div>
-        {children}
-        <DraftModal 
+        <div className="flex-1 overflow-y-auto mt-6 pb-6 pr-2 scrollbar-hide">
+          {children}
+        </div>
+        <DraftModal
           isOpen={showDraftModal}
           onClose={() => setShowDraftModal(false)}
         />

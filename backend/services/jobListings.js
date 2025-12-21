@@ -77,8 +77,14 @@ async function createJob(user, company, jobListingData, branchWiseMinCgpa) {
       where: { jobListingId: jobListed.id },
     });
     if (!existingReview) {
+      // Auto-approve jobs created by super-admin, otherwise set to under_review
+      const reviewStatus =
+        user.role === "super-admin"
+          ? StatusTypes.APPROVED
+          : StatusTypes.UNDER_REVIEW;
+
       await ListingReview.create({
-        status: StatusTypes.UNDER_REVIEW,
+        status: reviewStatus,
         jobListingId: jobListed.id,
       });
     }

@@ -12,6 +12,9 @@ import {
   RiArrowLeftLine,
   RiDownloadLine,
   RiTimeLine,
+  RiCheckLine,
+  RiAlertLine,
+  RiEditLine,
 } from "react-icons/ri";
 import Dashboard from "@/components/layouts/Dashboard";
 
@@ -96,10 +99,86 @@ const JobDetail = () => {
                 >
                   {job.isActive ? "Active" : "Closed"}
                 </span>
+                {/* Approval Status Badge */}
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 ${
+                    job.Review?.status === "approved"
+                      ? "bg-green-100 text-green-700"
+                      : job.Review?.status === "changes_requested"
+                      ? "bg-orange-100 text-orange-700"
+                      : job.Review?.status === "rejected"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {job.Review?.status === "approved" ? (
+                    <>
+                      <RiCheckLine className="w-4 h-4" />
+                      Approved
+                    </>
+                  ) : job.Review?.status === "changes_requested" ? (
+                    <>
+                      <RiEditLine className="w-4 h-4" />
+                      Changes Requested
+                    </>
+                  ) : job.Review?.status === "rejected" ? (
+                    <>
+                      <RiAlertLine className="w-4 h-4" />
+                      Rejected
+                    </>
+                  ) : (
+                    <>
+                      <RiTimeLine className="w-4 h-4" />
+                      Under Review
+                    </>
+                  )}
+                </span>
                 <span className="text-muted">
                   {applications?.length || 0} Applications
                 </span>
               </div>
+              {/* Status Reason Alert */}
+              {job.Review?.statusReason &&
+                (job.Review?.status === "changes_requested" ||
+                  job.Review?.status === "rejected") && (
+                  <div
+                    className={`mt-4 p-4 rounded-lg flex items-start gap-3 ${
+                      job.Review?.status === "rejected"
+                        ? "bg-red-50 border border-red-200"
+                        : "bg-orange-50 border border-orange-200"
+                    }`}
+                  >
+                    <RiAlertLine
+                      className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                        job.Review?.status === "rejected"
+                          ? "text-red-600"
+                          : "text-orange-600"
+                      }`}
+                    />
+                    <div>
+                      <p
+                        className={`font-medium ${
+                          job.Review?.status === "rejected"
+                            ? "text-red-800"
+                            : "text-orange-800"
+                        }`}
+                      >
+                        {job.Review?.status === "rejected"
+                          ? "Rejection Reason"
+                          : "Changes Requested"}
+                      </p>
+                      <p
+                        className={`text-sm mt-1 ${
+                          job.Review?.status === "rejected"
+                            ? "text-red-700"
+                            : "text-orange-700"
+                        }`}
+                      >
+                        {job.Review?.statusReason}
+                      </p>
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
 

@@ -10,6 +10,7 @@ import {
   RiBriefcaseLine,
   RiMapPinLine,
   RiMoneyDollarCircleLine,
+  RiAlertLine,
 } from "react-icons/ri";
 import Dashboard from "@/components/layouts/Dashboard";
 
@@ -17,6 +18,7 @@ const JobListings = () => {
   const auth = useRecoilValue(authState);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterApproval, setFilterApproval] = useState("all");
 
   const normalizeJob = (job) => {
     const title = job.title || job.jobTitle || job.position || "Untitled role";
@@ -49,6 +51,7 @@ const JobListings = () => {
       salary,
       isActive,
       reviewStatus: reviewStatus || "under_review",
+      statusReason: job.Review?.statusReason || null,
       applicationsCount: job.Students?.length ?? job.applicationsCount ?? 0,
     };
   };
@@ -80,7 +83,9 @@ const JobListings = () => {
       filterStatus === "all" ||
       (filterStatus === "active" && job.isActive) ||
       (filterStatus === "closed" && !job.isActive);
-    return matchesSearch && matchesFilter;
+    const matchesApproval =
+      filterApproval === "all" || job.reviewStatus === filterApproval;
+    return matchesSearch && matchesFilter && matchesApproval;
   });
 
   return (
@@ -126,6 +131,19 @@ const JobListings = () => {
               <option value="active">Active</option>
               <option value="closed">Closed</option>
             </select>
+
+            {/* Approval Status Filter */}
+            <select
+              value={filterApproval}
+              onChange={(e) => setFilterApproval(e.target.value)}
+              className="select bg-background"
+            >
+              <option value="all">All Approval Status</option>
+              <option value="approved">Approved</option>
+              <option value="changes_requested">Changes Requested</option>
+              <option value="under_review">Under Review</option>
+              <option value="rejected">Rejected</option>
+            </select>
           </div>
         </div>
 
@@ -159,6 +177,8 @@ const JobListings = () => {
                       className={`inline-block px-2 py-1 rounded text-xs font-medium ${
                         job.reviewStatus === "approved"
                           ? "bg-green-100 text-green-700"
+                          : job.reviewStatus === "changes_requested"
+                          ? "bg-orange-100 text-orange-700"
                           : job.reviewStatus === "rejected"
                           ? "bg-red-100 text-red-700"
                           : "bg-yellow-100 text-yellow-700"
@@ -166,10 +186,20 @@ const JobListings = () => {
                     >
                       {job.reviewStatus === "approved"
                         ? "Approved"
+                        : job.reviewStatus === "changes_requested"
+                        ? "Changes Requested"
                         : job.reviewStatus === "rejected"
                         ? "Rejected"
                         : "Under Review"}
                     </div>
+                    {job.statusReason &&
+                      (job.reviewStatus === "changes_requested" ||
+                        job.reviewStatus === "rejected") && (
+                        <p className="text-xs text-orange-600 mt-2 flex items-start gap-1">
+                          <RiAlertLine className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                          <span>{job.statusReason}</span>
+                        </p>
+                      )}
                   </div>
                 </div>
 

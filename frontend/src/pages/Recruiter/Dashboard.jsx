@@ -7,6 +7,9 @@ import {
   RiBriefcaseLine,
   RiFileListLine,
   RiCheckLine,
+  RiTimeLine,
+  RiEditLine,
+  RiAlertLine,
 } from "react-icons/ri";
 import { Link } from "react-router-dom";
 import Dashboard from "@/components/layouts/Dashboard";
@@ -45,6 +48,7 @@ const RecruiterDashboard = () => {
       salary,
       isActive,
       reviewStatus: reviewStatus || "under_review",
+      statusReason: job.Review?.statusReason || null,
       applicationsCount: job.Students?.length ?? job.applicationsCount ?? 0,
     };
   };
@@ -73,6 +77,13 @@ const RecruiterDashboard = () => {
   const stats = {
     totalJobs: jobs?.length || 0,
     activeJobs: jobs?.filter((job) => job.isActive)?.length || 0,
+    approvedJobs:
+      jobs?.filter((job) => job.reviewStatus === "approved")?.length || 0,
+    changesRequested:
+      jobs?.filter((job) => job.reviewStatus === "changes_requested")?.length ||
+      0,
+    underReview:
+      jobs?.filter((job) => job.reviewStatus === "under_review")?.length || 0,
     totalApplications:
       jobs?.reduce((sum, job) => sum + (job.applicationsCount || 0), 0) || 0,
     hiredCandidates: 0, // Can be calculated based on hiring process status
@@ -83,18 +94,28 @@ const RecruiterDashboard = () => {
 
   const statsCards = [
     {
-      title: "Total Jobs Posted",
-      value: stats.totalJobs,
-      icon: RiBriefcaseLine,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-    },
-    {
-      title: "Active Jobs",
-      value: stats.activeJobs,
-      icon: RiFileListLine,
+      title: "Approved Jobs",
+      value: stats.approvedJobs,
+      icon: RiCheckLine,
       color: "text-green-600",
       bgColor: "bg-green-50",
+      description: "Ready for students",
+    },
+    {
+      title: "Changes Requested",
+      value: stats.changesRequested,
+      icon: RiEditLine,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      description: "Needs your attention",
+    },
+    {
+      title: "Under Review",
+      value: stats.underReview,
+      icon: RiTimeLine,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      description: "Pending approval",
     },
     {
       title: "Total Applications",
@@ -102,13 +123,7 @@ const RecruiterDashboard = () => {
       icon: RiUserLine,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
-    },
-    {
-      title: "Hired Candidates",
-      value: stats.hiredCandidates,
-      icon: RiCheckLine,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
+      description: "Across all jobs",
     },
   ];
 
@@ -148,6 +163,11 @@ const RecruiterDashboard = () => {
                   <div>
                     <p className="text-sm text-muted mb-1">{stat.title}</p>
                     <p className="text-3xl font-bold text-dark">{stat.value}</p>
+                    {stat.description && (
+                      <p className="text-xs text-muted mt-1">
+                        {stat.description}
+                      </p>
+                    )}
                   </div>
                   <div className={`p-3 rounded-lg ${stat.bgColor}`}>
                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
@@ -214,11 +234,40 @@ const RecruiterDashboard = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-dark">{job.title}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-dark">{job.title}</h3>
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                            job.reviewStatus === "approved"
+                              ? "bg-green-100 text-green-700"
+                              : job.reviewStatus === "changes_requested"
+                              ? "bg-orange-100 text-orange-700"
+                              : job.reviewStatus === "rejected"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {job.reviewStatus === "approved"
+                            ? "Approved"
+                            : job.reviewStatus === "changes_requested"
+                            ? "Changes Requested"
+                            : job.reviewStatus === "rejected"
+                            ? "Rejected"
+                            : "Under Review"}
+                        </span>
+                      </div>
                       <p className="text-sm text-muted mt-1">
                         {job.jobType} •{" "}
                         {job.salary ? `₹${job.salary}` : "Not specified"}
                       </p>
+                      {job.statusReason &&
+                        (job.reviewStatus === "changes_requested" ||
+                          job.reviewStatus === "rejected") && (
+                          <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                            <RiAlertLine className="w-3 h-3" />
+                            {job.statusReason}
+                          </p>
+                        )}
                     </div>
                     <Link
                       to={`/recruiter/jobs/${job.id}`}

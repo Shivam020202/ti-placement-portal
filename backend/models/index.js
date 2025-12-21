@@ -146,9 +146,16 @@ JobListing.afterCreate(async (jobListing, options) => {
     const superAdmin = await SuperAdmin.findOne();
     const superAdminUser = await superAdmin.getUser();
 
+    // Check if the job was created by a super-admin - if so, auto-approve
+    const creator = await User.findByPk(jobListing.addedBy);
+    const reviewStatus =
+      creator && creator.role === "super-admin"
+        ? StatusTypes.APPROVED
+        : StatusTypes.UNDER_REVIEW;
+
     const listingReview = await jobListing.createReview({
-      status: StatusTypes.UNDER_REVIEW,
-      assignedTo: superAdminUser.id,
+      status: reviewStatus,
+      assignedTo: superAdminUser.email,
     });
     console.log(listingReview);
   } catch (e) {
