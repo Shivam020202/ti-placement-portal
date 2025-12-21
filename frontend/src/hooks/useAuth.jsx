@@ -10,7 +10,7 @@ export const useAuth = () => {
   const navigate = useNavigate();
 
   const loginWithGoogle = useCallback(
-    async (token) => {
+    async (token, photoURL = null) => {
       try {
         setAuth((prev) => ({ ...prev, loading: true, error: null }));
 
@@ -27,13 +27,14 @@ export const useAuth = () => {
           user.role === "admin" || user.role === "super-admin";
         const role =
           user.role === "student" ? student : isAdminRole ? admin : recruiter;
+        const userWithPhoto = photoURL ? { ...user, photoURL } : user;
 
         // Store auth data
         localStorage.setItem("authToken", token);
-        localStorage.setItem("userData", JSON.stringify(user));
+        localStorage.setItem("userData", JSON.stringify(userWithPhoto));
 
         setAuth({
-          user,
+          user: userWithPhoto,
           role,
           token,
           isAuthenticated: true,

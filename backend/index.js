@@ -51,6 +51,9 @@ app.get("/sync", async (req, res) => {
   res.send("Successfully Synced");
 });
 
+// Upload routes (requires authentication)
+app.use("/", Middlewares.userExists, require("./routes/upload.js"));
+
 // Base router
 app.use("/", Middlewares.userExists, require("./routes/index.js"));
 app.use(Middlewares.error);

@@ -106,9 +106,12 @@ const Profile = () => {
           <div className="flex items-center gap-6">
             <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center overflow-hidden ring-4 ring-white/30">
               <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  user.fullName
-                )}&size=96&background=random&color=fff`}
+                src={
+                  user.photoURL ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    user.fullName
+                  )}&size=96&background=random&color=fff`
+                }
                 alt={user.fullName}
                 className="w-full h-full object-cover"
               />

@@ -1,10 +1,10 @@
-import React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRecoilValue } from 'recoil';
-import { authState } from '@/store/atoms/authAtom';
-import axios from 'axios';
-import { Trash2, User } from 'react-feather'; // Added User icon
-import { Toast } from '@/components/ui/Toast';
+import React from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRecoilValue } from "recoil";
+import { authState } from "@/store/atoms/authAtom";
+import axios from "axios";
+import { Trash2, User } from "react-feather"; // Added User icon
+import { Toast } from "@/components/ui/Toast";
 
 const TeamTable = ({ members, isLoading }) => {
   const auth = useRecoilValue(authState);
@@ -12,19 +12,22 @@ const TeamTable = ({ members, isLoading }) => {
 
   const deleteAdminMutation = useMutation({
     mutationFn: async (email) => {
-      await axios.delete(`${import.meta.env.VITE_URI}/super-admin/admin/${email}`, {
-        headers: {
-          Authorization: auth.token
+      await axios.delete(
+        `${import.meta.env.VITE_URI}/super-admin/admin/${email}`,
+        {
+          headers: {
+            Authorization: auth.token,
+          },
         }
-      });
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['team-members']);
-      Toast.success('Admin removed successfully');
+      queryClient.invalidateQueries(["team-members"]);
+      Toast.success("Admin removed successfully");
     },
     onError: (error) => {
-      Toast.error(error.response?.data?.message || 'Failed to remove admin');
-    }
+      Toast.error(error.response?.data?.message || "Failed to remove admin");
+    },
   });
 
   if (isLoading) {
@@ -64,8 +67,11 @@ const TeamTable = ({ members, isLoading }) => {
       <div className="overflow-y-auto scrollbar-hide h-[calc(65vh-120px)]">
         <table className="w-full text-sm text-left">
           <tbody>
-            {members?.map((member) => (
-              <tr key={member.User.email} className="border-b transition-colors hover:bg-white">
+            {members?.map((member, index) => (
+              <tr
+                key={`${member.User.email}-${index}`}
+                className="border-b transition-colors hover:bg-white"
+              >
                 <td className="px-4 py-4">
                   <div className="flex items-center space-x-3">
                     <div className="bg-white p-2 rounded-full">
@@ -84,7 +90,11 @@ const TeamTable = ({ members, isLoading }) => {
                 <td className="px-6 py-4">
                   <button
                     onClick={() => {
-                      if (window.confirm('Are you sure you want to remove this admin?')) {
+                      if (
+                        window.confirm(
+                          "Are you sure you want to remove this admin?"
+                        )
+                      ) {
                         deleteAdminMutation.mutate(member.User.email);
                       }
                     }}

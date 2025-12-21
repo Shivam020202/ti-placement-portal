@@ -19,6 +19,7 @@ import {
   RiFileList2Line,
   RiAlertLine,
 } from "react-icons/ri";
+import { getLogoUrl } from "@/utils/logoHelper";
 
 const Dashboard = () => {
   const auth = useRecoilValue(authState);
@@ -378,9 +379,9 @@ const JobCard = ({ job, showStatus = false }) => (
   >
     <div className="flex items-center gap-4">
       <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center shadow-sm overflow-hidden">
-        {job.company?.logo ? (
+        {getLogoUrl(job.company?.logo) ? (
           <img
-            src={job.company.logo}
+            src={getLogoUrl(job.company?.logo)}
             alt={job.company?.name}
             className="w-10 h-10 object-contain"
           />

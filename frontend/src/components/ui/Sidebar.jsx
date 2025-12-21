@@ -33,6 +33,12 @@ const menuConfigs = {
       path: "/super-admin/job-listings",
     },
     {
+      id: "applications",
+      icon: <RiFileListFill size={24} />,
+      label: "Applications",
+      path: "/super-admin/applications",
+    },
+    {
       id: "team-members",
       icon: <RiTeamFill size={24} />,
       label: "Team Members",
@@ -176,7 +182,7 @@ const Sidebar = () => {
           </button>
           <img
             className="w-16 rounded-full"
-            src={assets.profileimg}
+            src={auth.user?.photoURL || assets.profileimg}
             alt="Profile"
           />
         </div>

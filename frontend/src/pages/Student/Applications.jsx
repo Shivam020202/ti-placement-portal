@@ -20,6 +20,7 @@ import {
   RiExternalLinkLine,
   RiDeleteBinLine,
 } from "react-icons/ri";
+import { getLogoUrl } from "@/utils/logoHelper";
 
 const Applications = () => {
   const auth = useRecoilValue(authState);
@@ -64,7 +65,7 @@ const Applications = () => {
 
   const normalizeApplication = (job) => {
     const companyName = job.Company?.name || "Unknown Company";
-    const companyLogo = job.Company?.logo || null;
+    const companyLogo = getLogoUrl(job.Company?.logo);
     const location = Array.isArray(job.locationOptions)
       ? job.locationOptions.join(", ")
       : job.locationOptions || "Remote";
