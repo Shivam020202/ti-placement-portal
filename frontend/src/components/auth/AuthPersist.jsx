@@ -20,17 +20,20 @@ const AuthPersist = ({ children }) => {
       });
 
       const { user, student, admin, recruiter } = response.data;
+      const storedUser = JSON.parse(localStorage.getItem('userData') || "null");
+      const userWithPhoto = storedUser?.photoURL ? { ...user, photoURL: storedUser.photoURL } : user;
       const isAdminRole = user.role === "admin" || user.role === "super-admin";
       const role = user.role === "student" ? student : isAdminRole ? admin : recruiter;
 
       setAuth({
-        user,
+        user: userWithPhoto,
         role,
         token: storedToken,
         isAuthenticated: true,
         loading: false,
         error: null
       });
+      localStorage.setItem('userData', JSON.stringify(userWithPhoto));
 
       return true;
     } catch (error) {

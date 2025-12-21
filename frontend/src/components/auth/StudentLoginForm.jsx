@@ -15,7 +15,7 @@ const StudentLoginForm = () => {
       const result = await signInWithGoogle();
       if (result) {
         const token = await result.user.getIdToken();
-        await loginWithGoogle(token);
+        await loginWithGoogle(token, result.user.photoURL);
       }
     } catch (err) {
       setLocalError(err.message);

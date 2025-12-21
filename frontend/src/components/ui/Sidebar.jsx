@@ -182,7 +182,7 @@ const Sidebar = () => {
           </button>
           <img
             className="w-16 rounded-full"
-            src={assets.profileimg}
+            src={auth.user?.photoURL || assets.profileimg}
             alt="Profile"
           />
         </div>
