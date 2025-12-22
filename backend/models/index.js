@@ -74,7 +74,11 @@ JobListing.belongsTo(User, { foreignKey: "addedBy" });
 Student.belongsToMany(JobListing, { through: AppliedToJob });
 JobListing.belongsToMany(Student, { through: AppliedToJob });
 
-JobListing.hasMany(HiringProcess, { foreignKey: { name: "jobId" } });
+JobListing.hasMany(HiringProcess, {
+  foreignKey: { name: "jobId" },
+  onDelete: "CASCADE",
+  hooks: true,
+});
 HiringProcess.belongsTo(JobListing, { foreignKey: { name: "jobId" } });
 
 HiringProcess.hasOne(CodingRound, {
@@ -109,6 +113,8 @@ Student.belongsToMany(Skill, { through: "StudentSkill" });
 JobListing.hasOne(ListingReview, {
   as: "Review",
   foreignKey: { name: "jobListingId" },
+  onDelete: "CASCADE",
+  hooks: true,
 });
 ListingReview.belongsTo(JobListing, {
   as: "JobListing",

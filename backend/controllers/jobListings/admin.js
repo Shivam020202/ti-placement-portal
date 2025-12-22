@@ -271,12 +271,7 @@ async function bulkUpdateApplicationStatus(req, res, next) {
       }
     );
 
-    return respond(
-      res,
-      HttpCodes.OK,
-      "Applications updated",
-      { updatedCount }
-    );
+    return respond(res, HttpCodes.OK, "Applications updated", { updatedCount });
   } catch (error) {
     next(error);
   }
@@ -287,11 +282,10 @@ const deleteJobListingById = async (req, res, next) => {
   const jobListingId = req.params.id;
 
   try {
-    const deletedListing = await JobListing.destroy({
-      where: { id: jobListingId },
-    });
+    // Find the job first to ensure it exists
+    const jobListing = await JobListing.findByPk(jobListingId);
 
-    if (!deletedListing) {
+    if (!jobListing) {
       throw new HttpError(
         HttpCodes.NOT_FOUND,
         "Job Listing not found",
@@ -299,7 +293,42 @@ const deleteJobListingById = async (req, res, next) => {
       );
     }
 
-    respond(res, HttpCodes.OK, "Job Listing deleted", deletedListing);
+    // Delete related records first to ensure complete cleanup
+    // Delete listing review
+    await ListingReview.destroy({
+      where: { jobListingId: jobListingId },
+    });
+
+    // Delete hiring processes and their related records
+    const hiringProcesses = await HiringProcess.findAll({
+      where: { jobId: jobListingId },
+    });
+
+    for (const hp of hiringProcesses) {
+      await GroupDiscussion.destroy({ where: { groupDiscussionId: hp.id } });
+      await CodingRound.destroy({ where: { codingRoundId: hp.id } });
+      await Interview.destroy({ where: { InterviewId: hp.id } });
+      await PPT.destroy({ where: { PPTId: hp.id } });
+    }
+
+    await HiringProcess.destroy({
+      where: { jobId: jobListingId },
+    });
+
+    // Delete job applications
+    await AppliedToJob.destroy({
+      where: { job_listing_id: jobListingId },
+    });
+
+    // Delete job-branch associations
+    await JobBranch.destroy({
+      where: { JobListingId: jobListingId },
+    });
+
+    // Finally delete the job listing
+    await jobListing.destroy();
+
+    respond(res, HttpCodes.OK, "Job Listing deleted successfully");
   } catch (error) {
     next(error);
   }
