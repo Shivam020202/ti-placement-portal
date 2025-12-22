@@ -356,12 +356,11 @@ const JobListings = () => {
                           </div>
                           <Link
                             to={`/super-admin/chat/${job.hr}`}
-                            onClick={(event) => event.stopPropagation()}
                             className="font-medium hover:text-primary transition-colors flex items-center gap-1"
                           >
                             {job.hr}
                             <RiMessage2Line className="text-primary" />
-                          </Link>
+                          </a>
                         </div>
                       </div>
                     </div>
