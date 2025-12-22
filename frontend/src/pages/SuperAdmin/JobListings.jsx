@@ -6,7 +6,7 @@ import DashboardLayout from "../../components/layouts/Dashboard";
 import { useRecoilValue } from "recoil";
 import { authState } from "../../store/atoms/authAtom";
 import { assets } from "../../assets/assets";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import {
   RiFilter3Line,
   RiMoreLine,
@@ -354,8 +354,8 @@ const JobListings = () => {
                           <div className="text-sm opacity-70">
                             Company Representative
                           </div>
-                          <Link
-                            to={`/super-admin/chat/${job.hr}`}
+                          <a
+                            href={`mailto:${job.hr}`}
                             className="font-medium hover:text-primary transition-colors flex items-center gap-1"
                           >
                             {job.hr}
