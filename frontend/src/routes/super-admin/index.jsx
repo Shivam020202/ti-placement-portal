@@ -6,6 +6,7 @@ import Companies from "../../pages/SuperAdmin/Companies";
 import CreateJob from "../../pages/SuperAdmin/CreateJob";
 import Applications from "../../pages/SuperAdmin/Applications";
 import JobDetail from '../../pages/SuperAdmin/JobDetail';
+import AdminAnalytics from "../../pages/SuperAdmin/analytics/AdminAnalytics";
 
 const SuperAdminRoutes = () => {
   return (
@@ -17,6 +18,7 @@ const SuperAdminRoutes = () => {
       <Route path="applications" element={<Applications />} />
       <Route path="team-members" element={<TeamMembers />} />
       <Route path="companies" element={<Companies />} />
+      <Route path="analytics" element={<AdminAnalytics />} />
       <Route path="*" element={<Navigate to="dashboard" replace />} />
     </Routes>
   );
