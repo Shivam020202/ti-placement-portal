@@ -264,7 +264,7 @@ const Dashboard = () => {
         <div className="flex h-[60vh] gap-6">
           <div className="flex flex-col h-full gap-6 w-[70%]">
             {/* Pending Requests Card */}
-            <div className="bg-white rounded-xl p-6 h-[50%] flex flex-col">
+            <div className="bg-white rounded-xl p-6 h-[45%] flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Pending Reviews</h2>
                 <Link
@@ -309,7 +309,7 @@ const Dashboard = () => {
             </div>
 
             {/* Active Listings Card */}
-            <div className="bg-white rounded-xl p-6 h-[50%] flex flex-col">
+            <div className="bg-white rounded-xl p-6 h-[55%] flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Active Listings</h2>
                 <Link
