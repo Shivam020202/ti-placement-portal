@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { authState } from "@/store/atoms/authAtom";
 import axios from "@/utils/axiosConfig";
 import { Toast } from "@/components/ui/toast";
+import { resolveAvatar } from "@/utils/avatarHelper";
 
 export const useAuth = () => {
   const [auth, setAuth] = useRecoilState(authState);
@@ -27,7 +28,12 @@ export const useAuth = () => {
           user.role === "admin" || user.role === "super-admin";
         const role =
           user.role === "student" ? student : isAdminRole ? admin : recruiter;
-        const userWithPhoto = photoURL ? { ...user, photoURL } : user;
+        const resolvedPhoto = await resolveAvatar(
+          user.email,
+          photoURL,
+          user.fullName
+        );
+        const userWithPhoto = { ...user, photoURL: resolvedPhoto };
 
         // Store auth data
         localStorage.setItem("authToken", token);
