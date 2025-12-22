@@ -5,12 +5,14 @@ import TeamMembers from "../../pages/SuperAdmin/TeamMembers";
 import Companies from "../../pages/SuperAdmin/Companies";
 import CreateJob from "../../pages/SuperAdmin/CreateJob";
 import Applications from "../../pages/SuperAdmin/Applications";
+import JobDetail from '../../pages/SuperAdmin/JobDetail';
 
 const SuperAdminRoutes = () => {
   return (
     <Routes>
       <Route path="dashboard" element={<Dashboard />} />
       <Route path="job-listings" element={<JobListings />} />
+      <Route path="job-listings/:id" element={<JobDetail />} />
       <Route path="create-job" element={<CreateJob />} />
       <Route path="applications" element={<Applications />} />
       <Route path="team-members" element={<TeamMembers />} />

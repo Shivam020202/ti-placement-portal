@@ -6,7 +6,7 @@ import DashboardLayout from "../../components/layouts/Dashboard";
 import { useRecoilValue } from "recoil";
 import { authState } from "../../store/atoms/authAtom";
 import { assets } from "../../assets/assets";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   RiFilter3Line,
   RiMoreLine,
@@ -61,11 +61,15 @@ const mockJobs = [
 const JobListings = () => {
   const auth = useRecoilValue(authState);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [sortOrder, setSortOrder] = useState("newest");
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
 
   const [activeTab, setActiveTab] = useState("all");
+  const handleCardClick = (jobId) => {
+    navigate(`/super-admin/job-listings/${jobId}`);
+  };
 
   // Fetch job listings
   const { data: jobsData, isLoading } = useQuery({
@@ -312,7 +316,19 @@ const JobListings = () => {
         <div className="flex-1 overflow-y-auto scrollbar-hide pr-2">
           <div className="grid grid-cols-1 gap-4 pb-4">
             {sortedJobs.map((job) => (
-              <div key={job.id} className="card bg-background">
+              <div
+                key={job.id}
+                className="card bg-background cursor-pointer transition-shadow hover:shadow-md"
+                role="button"
+                tabIndex={0}
+                onClick={() => handleCardClick(job.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleCardClick(job.id);
+                  }
+                }}
+              >
                 <div className="card-body">
                   <div className="flex justify-between items-start">
                     <div className="space-y-4">
@@ -340,6 +356,7 @@ const JobListings = () => {
                           </div>
                           <Link
                             to={`/super-admin/chat/${job.hr}`}
+                            onClick={(event) => event.stopPropagation()}
                             className="font-medium hover:text-primary transition-colors flex items-center gap-1"
                           >
                             {job.hr}
@@ -357,7 +374,10 @@ const JobListings = () => {
                       <div>{job.salary}</div>
                     </div>
 
-                    <div className="h-full flex flex-col gap-3">
+                    <div
+                      className="h-full flex flex-col gap-3"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       {/* Assign Admin Section */}
                       <div className="flex items-center gap-3">
                         {job.assignedAdmin ? (
@@ -377,7 +397,8 @@ const JobListings = () => {
                         ) : (
                           <button
                             className="btn btn-sm rounded-full border-2 border-red text-red gap-2 hover:bg-red hover:text-white"
-                            onClick={() => {
+                            onClick={(event) => {
+                              event.stopPropagation();
                               setSelectedJob(job);
                               setShowAssignModal(true);
                             }}

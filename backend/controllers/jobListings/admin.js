@@ -1,4 +1,5 @@
 const { StatusTypes } = require("../../config/enums");
+const { Op } = require("sequelize");
 const { HttpError, HttpCodes, respond } = require("../../config/http");
 const {
   Company,
@@ -190,12 +191,39 @@ async function getAppliedStds(req, res, next) {
       include: [
         {
           model: Student,
-          through: AppliedToJob,
-          include: User,
+          through: {
+            attributes: [
+              "createdAt",
+              "stdCgpa",
+              "resume",
+              "coverLetter",
+              "personalEmail",
+              "sentToRecruiter",
+              "status",
+              "reviewedBy",
+              "reviewedAt",
+            ],
+          },
+          include: [User, Branch],
+        },
+        {
+          model: Branch,
+          through: {
+            attributes: ["minCgpa"],
+          },
+        },
+        {
+          model: ListingReview,
+          as: "Review",
+        },
+        {
+          model: HiringProcess,
+          include: [GroupDiscussion, CodingRound, Interview, PPT],
         },
         Company,
       ],
       where: { id: jobId },
+      order: [[{ model: HiringProcess }, "index", "ASC"]],
     });
 
     console.log(job);
@@ -204,6 +232,51 @@ async function getAppliedStds(req, res, next) {
     res.status(200).json({
       job,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function bulkUpdateApplicationStatus(req, res, next) {
+  const { jobId, studentRollNumbers, status } = req.body;
+  const user = res.locals.user;
+
+  try {
+    if (!jobId) {
+      throw new HttpError(HttpCodes.BAD_REQUEST, "Job ID is required");
+    }
+    if (!Array.isArray(studentRollNumbers) || !studentRollNumbers.length) {
+      throw new HttpError(
+        HttpCodes.BAD_REQUEST,
+        "studentRollNumbers must be a non-empty array"
+      );
+    }
+    if (!["approved", "rejected", "hired"].includes(status)) {
+      throw new HttpError(HttpCodes.BAD_REQUEST, "Invalid status");
+    }
+
+    const [updatedCount] = await AppliedToJob.update(
+      {
+        status,
+        reviewedBy: user.email,
+        reviewedAt: new Date(),
+      },
+      {
+        where: {
+          job_listing_id: jobId,
+          student_roll_number: {
+            [Op.in]: studentRollNumbers,
+          },
+        },
+      }
+    );
+
+    return respond(
+      res,
+      HttpCodes.OK,
+      "Applications updated",
+      { updatedCount }
+    );
   } catch (error) {
     next(error);
   }
@@ -514,7 +587,7 @@ async function sendToRecruiter(req, res, next) {
     const updatedStds = await AppliedToJob.update(
       { sentToRecruiter: true },
       {
-        where: { JobListingId: jobId },
+        where: { job_listing_id: jobId },
         returning: true,
       }
     );
@@ -627,4 +700,5 @@ module.exports = {
   addAdminToListing,
   getAdminsForListing,
   removeAdminFromListing,
+  bulkUpdateApplicationStatus,
 };

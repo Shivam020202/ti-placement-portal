@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRecoilValue } from "recoil";
 import { authState } from "@/store/atoms/authAtom";
 import axios from "@/utils/axiosConfig";
@@ -10,12 +10,55 @@ import {
   RiMailLine,
   RiEyeLine,
   RiDownloadLine,
+  RiCheckLine,
+  RiCloseLine,
+  RiBriefcase2Line,
 } from "react-icons/ri";
 import Dashboard from "@/components/layouts/Dashboard";
 
 const Applications = () => {
   const auth = useRecoilValue(authState);
   const [selectedJob, setSelectedJob] = useState("all");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const queryClient = useQueryClient();
+
+  const parseResumeReference = (rawResume) => {
+    if (!rawResume) return { type: "none" };
+    if (rawResume.startsWith("http")) {
+      return { type: "url", url: rawResume };
+    }
+    const match = rawResume.match(/ID:\s*(\d+)/i);
+    if (match) {
+      return { type: "id", id: match[1], label: rawResume };
+    }
+    return { type: "text", label: rawResume };
+  };
+
+  const handleResumeOpen = async (resumeMeta) => {
+    if (!resumeMeta || resumeMeta.type === "none") return;
+    if (resumeMeta.type === "url") {
+      window.open(resumeMeta.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (resumeMeta.type !== "id") return;
+
+    const newTab = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_URI}/super-admin/resumes/download/${resumeMeta.id}`,
+        { responseType: "blob" }
+      );
+      const blobUrl = window.URL.createObjectURL(response.data);
+      if (newTab) {
+        newTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
+    } catch (error) {
+      if (newTab) newTab.close();
+    }
+  };
 
   const normalizeJob = (job) => {
     const title = job.title || job.jobTitle || job.position || "Untitled role";
@@ -70,6 +113,15 @@ const Applications = () => {
         const students = res.data?.job?.Students || [];
         return students.map((student) => ({
           ...student,
+          rollNumber: student.rollNumber,
+          status:
+            student.AppliedToJob?.status ||
+            (student.AppliedToJob?.sentToRecruiter ? "approved" : "pending"),
+          resumeMeta: parseResumeReference(
+            student.AppliedToJob?.resume ||
+              student.User?.Resumes?.[0]?.resumeLink ||
+              ""
+          ),
           jobId,
           jobTitle: res.data?.job?.title || res.data?.job?.jobTitle,
           appliedAt: student.AppliedToJob?.createdAt,
@@ -88,6 +140,62 @@ const Applications = () => {
   });
 
   const filteredApplications = applications || [];
+  const selectedSet = new Set(selectedIds);
+  const allVisibleSelected =
+    filteredApplications.length > 0 &&
+    filteredApplications.every((item) => selectedSet.has(item.rollNumber));
+
+  const toggleSelect = (roll) => {
+    setSelectedIds((prev) =>
+      prev.includes(roll) ? prev.filter((id) => id !== roll) : [...prev, roll]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelectedIds((prev) =>
+        prev.filter(
+          (id) => !filteredApplications.some((item) => item.rollNumber === id)
+        )
+      );
+      return;
+    }
+    const ids = filteredApplications
+      .map((item) => item.rollNumber)
+      .filter(Boolean);
+    setSelectedIds((prev) => Array.from(new Set([...prev, ...ids])));
+  };
+
+  const bulkUpdateStatus = async (nextStatus) => {
+    if (!selectedIds.length) return;
+
+    // ensure single job
+    const selectedApps = filteredApplications.filter((app) =>
+      selectedSet.has(app.rollNumber)
+    );
+    const jobId = selectedApps[0]?.jobId;
+    if (!jobId) return;
+    const mixedJob = selectedApps.some((app) => app.jobId !== jobId);
+    if (mixedJob) return;
+
+    try {
+      await axios.patch(
+        `${import.meta.env.VITE_URI}/job-listings/recruiters/applications/status`,
+        {
+          jobId,
+          studentRollNumbers: selectedIds,
+          status: nextStatus,
+        }
+      );
+      setSelectedIds([]);
+      queryClient.invalidateQueries({
+        queryKey: ["recruiter-applications"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["recruiter-jobs"] });
+    } catch (error) {
+      // swallow
+    }
+  };
 
   return (
     <Dashboard role="recruiter">
@@ -142,6 +250,14 @@ const Applications = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3">
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-sm checkbox-error"
+                      checked={allVisibleSelected}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Candidate
                   </th>
@@ -155,6 +271,9 @@ const Applications = () => {
                     CGPA
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -162,6 +281,14 @@ const Applications = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredApplications.map((student) => (
                   <tr key={student.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm checkbox-error"
+                        checked={selectedSet.has(student.rollNumber)}
+                        onChange={() => toggleSelect(student.rollNumber)}
+                      />
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -193,18 +320,35 @@ const Applications = () => {
                         {student.cgpa || "N/A"}
                       </div>
                     </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          student.status === "hired"
+                            ? "bg-green-100 text-green-700"
+                            : student.status === "approved"
+                            ? "bg-blue-100 text-blue-700"
+                            : student.status === "rejected"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {student.status}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-2">
-                        {student.User?.Resumes?.[0] && (
-                          <a
-                            href={student.User.Resumes[0].resumeLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        {student.resumeMeta?.type &&
+                        student.resumeMeta.type !== "none" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleResumeOpen(student.resumeMeta)}
                             className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
                           >
                             <RiDownloadLine className="w-4 h-4" />
                             Resume
-                          </a>
+                          </button>
+                        ) : (
+                          <span className="text-muted text-xs">No resume</span>
                         )}
                       </div>
                     </td>
@@ -212,6 +356,32 @@ const Applications = () => {
                 ))}
               </tbody>
             </table>
+            <div className="flex items-center gap-3 p-4 border-t bg-gray-50">
+              <button
+                className="btn btn-sm btn-primary"
+                onClick={() => bulkUpdateStatus("approved")}
+                disabled={!selectedIds.length}
+              >
+                <RiCheckLine />
+                Approve
+              </button>
+              <button
+                className="btn btn-sm btn-outline border-red text-red hover:bg-red hover:text-white"
+                onClick={() => bulkUpdateStatus("rejected")}
+                disabled={!selectedIds.length}
+              >
+                <RiCloseLine />
+                Reject
+              </button>
+              <button
+                className="btn btn-sm btn-success"
+                onClick={() => bulkUpdateStatus("hired")}
+                disabled={!selectedIds.length}
+              >
+                <RiBriefcase2Line />
+                Mark Hired
+              </button>
+            </div>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow p-12 text-center">

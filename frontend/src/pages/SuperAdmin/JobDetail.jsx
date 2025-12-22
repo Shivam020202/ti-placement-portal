@@ -25,6 +25,7 @@ const statusStyles = {
   pending: "bg-yellow-100 text-yellow-700",
   approved: "bg-green-100 text-green-700",
   rejected: "bg-red-100 text-red-700",
+  hired: "bg-emerald-100 text-emerald-700",
 };
 
 const mockApplicants = [
@@ -86,6 +87,50 @@ const JobDetail = () => {
   const applicationsData =
     jobData?.Students || (jobError ? mockApplicants : []);
 
+  const parseResumeReference = (rawResume) => {
+    if (!rawResume) return { type: "none" };
+    if (rawResume.startsWith("http")) {
+      return { type: "url", url: rawResume };
+    }
+    const match = rawResume.match(/ID:\s*(\d+)/i);
+    if (match) {
+      return { type: "id", id: match[1], label: rawResume };
+    }
+    return { type: "text", label: rawResume };
+  };
+
+  const handleResumeOpen = async (resumeMeta) => {
+    if (!resumeMeta || resumeMeta.type === "none") return;
+    if (resumeMeta.type === "url") {
+      window.open(resumeMeta.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (resumeMeta.type !== "id") {
+      Toast.error("Resume link is unavailable.");
+      return;
+    }
+
+    const newTab = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_URI}/super-admin/resumes/download/${resumeMeta.id}`,
+        { responseType: "blob" }
+      );
+      const blobUrl = window.URL.createObjectURL(response.data);
+      if (newTab) {
+        newTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
+    } catch (error) {
+      if (newTab) newTab.close();
+      Toast.error(
+        error.response?.data?.message || "Failed to open resume."
+      );
+    }
+  };
+
   const applicants = useMemo(() => {
     if (!applicationsData) return [];
 
@@ -95,9 +140,14 @@ const JobDetail = () => {
           student.status === "approved" || student.status === "rejected"
             ? student.status
             : "pending";
+        const resumeMeta = parseResumeReference(
+          student.resumeLink || student.resume || ""
+        );
         return {
           ...student,
           status: statusOverrides[student.id] || safeStatus,
+          resumeMeta,
+          rollNumber: student.rollNumber || student.id || null,
         };
       }
 
@@ -115,8 +165,14 @@ const JobDetail = () => {
           ? apiStatus
           : "pending";
 
+      const rawResume =
+        student.AppliedToJob?.resume ||
+        student.User?.Resumes?.[0]?.resumeLink ||
+        "";
+
       return {
         id: fallbackId,
+        rollNumber: student.rollNumber || null,
         name: `${student.User?.firstName || ""} ${
           student.User?.lastName || ""
         }`.trim(),
@@ -124,10 +180,7 @@ const JobDetail = () => {
         branch: student.Branch?.name || student.branchCode || "N/A",
         cgpa: student.cgpa || student.AppliedToJob?.stdCgpa || "N/A",
         appliedAt: student.AppliedToJob?.createdAt || student.createdAt,
-        resumeLink:
-          student.User?.Resumes?.[0]?.resumeLink ||
-          student.AppliedToJob?.resume ||
-          "",
+        resumeMeta: parseResumeReference(rawResume),
         status: statusOverrides[fallbackId] || normalizedStatus,
       };
     });
@@ -139,10 +192,11 @@ const JobDetail = () => {
         const status = applicant.status || "pending";
         if (status === "approved") acc.approved += 1;
         else if (status === "rejected") acc.rejected += 1;
+        else if (status === "hired") acc.hired += 1;
         else acc.pending += 1;
         return acc;
       },
-      { pending: 0, approved: 0, rejected: 0 }
+      { pending: 0, approved: 0, rejected: 0, hired: 0 }
     );
   }, [applicants]);
 
@@ -154,112 +208,10 @@ const JobDetail = () => {
   const allVisibleSelected =
     filteredApplicants.length > 0 &&
     filteredApplicants.every((applicant) => selectedSet.has(applicant.id));
-
-  const toggleSelect = (idToToggle) => {
-    setSelectedIds((prev) =>
-      prev.includes(idToToggle)
-        ? prev.filter((id) => id !== idToToggle)
-        : [...prev, idToToggle]
-    );
-  };
-
-  const toggleSelectAll = () => {
-    if (allVisibleSelected) {
-      setSelectedIds((prev) =>
-        prev.filter(
-          (id) => !filteredApplicants.some((applicant) => applicant.id === id)
-        )
-      );
-      return;
-    }
-
-    const visibleIds = filteredApplicants.map((applicant) => applicant.id);
-    setSelectedIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
-  };
-
-  const handleBulkUpdate = (nextStatus) => {
-    if (!selectedIds.length) {
-      Toast.error("Select at least one applicant to continue.");
-      return;
-    }
-
-    setStatusOverrides((prev) => {
-      const next = { ...prev };
-      selectedIds.forEach((applicantId) => {
-        next[applicantId] = nextStatus;
-      });
-      return next;
-    });
-
-    Toast.success(
-      `${selectedIds.length} application${
-        selectedIds.length > 1 ? "s" : ""
-      } marked as ${nextStatus}.`
-    );
-    setSelectedIds([]);
-  };
-
-  if (!auth.isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (auth.loading || jobLoading) {
-    return (
-      <div className="min-h-screen bg-base-100 flex items-center justify-center">
-        <div className="loading loading-spinner text-primary"></div>
-      </div>
-    );
-  }
-
-  if (!jobData) {
-    return (
-      <DashboardLayout>
-        <div className="w-full h-[85vh] bg-white rounded-xl p-6 flex flex-col items-center justify-center">
-          <RiFileTextLine className="w-16 h-16 text-red-400 mb-4" />
-          <h2 className="text-xl font-semibold text-dark mb-2">
-            {jobError ? "Unable to load job details" : "Job not found"}
-          </h2>
-          {jobError && (
-            <p className="text-muted mb-4 text-center max-w-lg">
-              {jobError.response?.data?.reason ||
-                "There was a problem loading this job. Please try again."}
-            </p>
-          )}
-          <Link
-            to="/super-admin/job-listings"
-            className="btn btn-primary"
-          >
-            Back to Job Listings
-          </Link>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  const companyName = jobData?.Company?.name || "Unknown Company";
-  const companyLogo = jobData?.Company?.logo;
-  const listingStatus = jobData?.Review?.status || "under_review";
-  const descriptionFile = jobData?.descriptionFile;
-  const descriptionLink =
-    descriptionFile && descriptionFile.startsWith("http")
-      ? descriptionFile
-      : descriptionFile
-      ? `${import.meta.env.VITE_URI}${descriptionFile}`
-      : "";
-  const locations = Array.isArray(jobData?.locationOptions)
-    ? jobData.locationOptions.join(", ")
-    : jobData?.locationOptions || "N/A";
-  const gradYears = Array.isArray(jobData?.gradYear)
-    ? jobData.gradYear.join(", ")
-    : jobData?.gradYear || "N/A";
-  const branchEligibility = Array.isArray(jobData?.Branches)
-    ? jobData.Branches.map((branch) => ({
-        id: branch.code || branch.id || branch.name,
-        code: branch.code,
-        name: branch.name || branch.code || "Branch",
-        minCgpa: branch.JobBranch?.minCgpa,
-      }))
-    : [];
+  const selectedApplicants = useMemo(
+    () => applicants.filter((applicant) => selectedSet.has(applicant.id)),
+    [applicants, selectedSet]
+  );
 
   const hiringSteps = useMemo(() => {
     const steps = Array.isArray(jobData?.HiringProcesses)
@@ -381,6 +333,136 @@ const JobDetail = () => {
 
     return { series, maxCount };
   }, [applicants]);
+
+  const toggleSelect = (idToToggle) => {
+    setSelectedIds((prev) =>
+      prev.includes(idToToggle)
+        ? prev.filter((id) => id !== idToToggle)
+        : [...prev, idToToggle]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelectedIds((prev) =>
+        prev.filter(
+          (id) => !filteredApplicants.some((applicant) => applicant.id === id)
+        )
+      );
+      return;
+    }
+
+    const visibleIds = filteredApplicants.map((applicant) => applicant.id);
+    setSelectedIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+  };
+
+  const handleBulkUpdate = async (nextStatus) => {
+    if (!selectedIds.length) {
+      Toast.error("Select at least one applicant to continue.");
+      return;
+    }
+
+    const rollNumbers = selectedApplicants
+      .map((applicant) => applicant.rollNumber)
+      .filter(Boolean);
+
+    if (!rollNumbers.length) {
+      Toast.error("Selected applicants are missing roll numbers.");
+      return;
+    }
+
+    try {
+      await axios.patch(
+        `${import.meta.env.VITE_URI}/job-listings/admins/applications/status`,
+        {
+          jobId: Number(id),
+          studentRollNumbers: rollNumbers,
+          status: nextStatus,
+        }
+      );
+
+      setStatusOverrides((prev) => {
+        const next = { ...prev };
+        selectedIds.forEach((applicantId) => {
+          next[applicantId] = nextStatus;
+        });
+        return next;
+      });
+
+      Toast.success(
+        `${selectedIds.length} application${
+          selectedIds.length > 1 ? "s" : ""
+        } marked as ${nextStatus}.`
+      );
+      setSelectedIds([]);
+    } catch (error) {
+      Toast.error(
+        error.response?.data?.message || "Failed to update applications."
+      );
+    }
+  };
+
+  if (!auth.isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (auth.loading || jobLoading) {
+    return (
+      <div className="min-h-screen bg-base-100 flex items-center justify-center">
+        <div className="loading loading-spinner text-primary"></div>
+      </div>
+    );
+  }
+
+  if (!jobData) {
+    return (
+      <DashboardLayout>
+        <div className="w-full h-[85vh] bg-white rounded-xl p-6 flex flex-col items-center justify-center">
+          <RiFileTextLine className="w-16 h-16 text-red-400 mb-4" />
+          <h2 className="text-xl font-semibold text-dark mb-2">
+            {jobError ? "Unable to load job details" : "Job not found"}
+          </h2>
+          {jobError && (
+            <p className="text-muted mb-4 text-center max-w-lg">
+              {jobError.response?.data?.reason ||
+                "There was a problem loading this job. Please try again."}
+            </p>
+          )}
+          <Link
+            to="/super-admin/job-listings"
+            className="btn btn-primary"
+          >
+            Back to Job Listings
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const companyName = jobData?.Company?.name || "Unknown Company";
+  const companyLogo = jobData?.Company?.logo;
+  const listingStatus = jobData?.Review?.status || "under_review";
+  const descriptionFile = jobData?.descriptionFile;
+  const descriptionLink =
+    descriptionFile && descriptionFile.startsWith("http")
+      ? descriptionFile
+      : descriptionFile
+      ? `${import.meta.env.VITE_URI}${descriptionFile}`
+      : "";
+  const locations = Array.isArray(jobData?.locationOptions)
+    ? jobData.locationOptions.join(", ")
+    : jobData?.locationOptions || "N/A";
+  const gradYears = Array.isArray(jobData?.gradYear)
+    ? jobData.gradYear.join(", ")
+    : jobData?.gradYear || "N/A";
+  const branchEligibility = Array.isArray(jobData?.Branches)
+    ? jobData.Branches.map((branch) => ({
+        id: branch.code || branch.id || branch.name,
+        code: branch.code,
+        name: branch.name || branch.code || "Branch",
+        minCgpa: branch.JobBranch?.minCgpa,
+      }))
+    : [];
 
   return (
     <DashboardLayout>
@@ -809,6 +891,16 @@ const JobDetail = () => {
                 >
                   Rejected ({statusCounts.rejected})
                 </button>
+                <button
+                  className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                    activeStatus === "hired"
+                      ? "bg-primary text-white"
+                      : "bg-white text-muted hover:text-primary"
+                  }`}
+                  onClick={() => setActiveStatus("hired")}
+                >
+                  Hired ({statusCounts.hired})
+                </button>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -826,6 +918,14 @@ const JobDetail = () => {
                 >
                   <RiCloseLine />
                   Reject Selected
+                </button>
+                <button
+                  className="btn btn-sm btn-success"
+                  onClick={() => handleBulkUpdate("hired")}
+                  disabled={!selectedIds.length}
+                >
+                  <RiCheckLine />
+                  Mark Hired
                 </button>
               </div>
             </div>
@@ -908,16 +1008,18 @@ const JobDetail = () => {
                               : "N/A"}
                           </td>
                           <td className="px-4 py-4 text-sm">
-                            {applicant.resumeLink ? (
-                              <a
-                                href={applicant.resumeLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            {applicant.resumeMeta?.type &&
+                            applicant.resumeMeta.type !== "none" ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleResumeOpen(applicant.resumeMeta)
+                                }
                                 className="inline-flex items-center gap-1 text-primary hover:text-red"
                               >
                                 <RiDownloadLine />
                                 View
-                              </a>
+                              </button>
                             ) : (
                               <span className="text-muted">N/A</span>
                             )}
