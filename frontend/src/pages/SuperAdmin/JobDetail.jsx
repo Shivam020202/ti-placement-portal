@@ -20,6 +20,7 @@ import {
   RiUserLine,
   RiDownloadLine,
 } from "react-icons/ri";
+import { getLogoUrl } from "@/utils/logoHelper";
 
 const statusStyles = {
   pending: "bg-yellow-100 text-yellow-700",
@@ -440,7 +441,7 @@ const JobDetail = () => {
   }
 
   const companyName = jobData?.Company?.name || "Unknown Company";
-  const companyLogo = jobData?.Company?.logo;
+  const companyLogo = getLogoUrl(jobData?.Company?.logo);
   const listingStatus = jobData?.Review?.status || "under_review";
   const descriptionFile = jobData?.descriptionFile;
   const descriptionLink =

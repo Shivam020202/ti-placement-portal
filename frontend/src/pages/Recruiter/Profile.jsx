@@ -8,11 +8,13 @@ import {
   RiMapPinLine,
 } from "react-icons/ri";
 import Dashboard from "@/components/layouts/Dashboard";
+import { getLogoUrl } from "@/utils/logoHelper";
 
 const Profile = () => {
   const auth = useRecoilValue(authState);
   const user = auth.user;
   const company = auth.role?.Company;
+  const companyLogo = getLogoUrl(company?.logo);
 
   return (
     <Dashboard role="recruiter">
@@ -94,10 +96,10 @@ const Profile = () => {
               Company Information
             </h2>
 
-            {company.logo && (
+            {companyLogo && (
               <div className="mb-6">
                 <img
-                  src={company.logo}
+                  src={companyLogo}
                   alt={company.name}
                   className="h-16 object-contain"
                 />

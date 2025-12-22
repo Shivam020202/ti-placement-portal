@@ -123,6 +123,7 @@ const Sidebar = () => {
   const setAuth = useSetRecoilState(authState);
   const navigate = useNavigate();
   const location = useLocation();
+  const isAnalyticsPage = location.pathname.includes("analytics");
   const [activeItem, setActiveItem] = useState(() => {
     const path = location.pathname;
     const currentMenu = menuConfigs[auth.user?.role || "admin"];
@@ -155,7 +156,11 @@ const Sidebar = () => {
 
   return (
     <div className="h-full z-100">
-      <div className="flex flex-col gap-10 items-center h-full bg-background ml-10 mt-4">
+      <div
+        className={`flex flex-col gap-10 items-center h-full ml-10 mt-4 ${
+          isAnalyticsPage ? "bg-white" : "bg-background"
+        }`}
+      >
         <div className="mb-14">
           <img src={assets.logo} alt="Logo" />
         </div>

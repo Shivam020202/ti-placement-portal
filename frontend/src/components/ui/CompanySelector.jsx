@@ -4,6 +4,7 @@ import { useRecoilValue } from "recoil";
 import { authState } from "@/store/atoms/authAtom";
 import axios from "axios";
 import { RiSearchLine } from "react-icons/ri";
+import { getLogoUrl, getCompanyInitials } from "@/utils/logoHelper";
 
 const CompanySelector = ({ value, onChange, error }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -83,11 +84,21 @@ const CompanySelector = ({ value, onChange, error }) => {
                     setIsOpen(false);
                   }}
                 >
-                  <img
-                    src={company.logo}
-                    alt={company.name}
-                    className="w-8 h-8 rounded object-contain bg-white"
-                  />
+                  {getLogoUrl(company.logo) ? (
+                    <img
+                      src={getLogoUrl(company.logo)}
+                      alt={company.name}
+                      className="w-8 h-8 rounded object-contain bg-white"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded bg-dark text-white flex items-center justify-center text-sm">
+                      {getCompanyInitials(company.name)}
+                    </div>
+                  )}
                   <div>
                     <div className="font-medium">{company.name}</div>
                     <div className="text-sm text-muted">
