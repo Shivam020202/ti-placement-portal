@@ -29,13 +29,28 @@ const EditJobModal = ({ job, onClose }) => {
       ? job.locationOptions.join(",")
       : job.locationOptions || "",
     ctc: job.ctc || 0,
-    ctcBreakup: job.ctcBreakup || "",
+    ctcBreakup: Array.isArray(job.ctcBreakup)
+      ? job.ctcBreakup.join(",")
+      : job.ctcBreakup || "",
   });
+
+  // Determine endpoint based on user role
+  // Check both auth.role and auth.user.role for compatibility
+  const userRole = auth?.role || auth?.user?.role;
+  const isAdminOrSuperAdmin =
+    userRole === "super-admin" || userRole === "admin";
+  const endpointPath = isAdminOrSuperAdmin ? "admins" : "recruiters";
 
   const updateMutation = useMutation({
     mutationFn: async (data) => {
+      console.log(
+        "Updating job with role:",
+        userRole,
+        "endpoint:",
+        endpointPath
+      );
       const response = await axios.put(
-        `${import.meta.env.VITE_URI}/job-listings/recruiters/${job.id}`,
+        `${import.meta.env.VITE_URI}/job-listings/${endpointPath}/${job.id}`,
         { updatedData: data }
       );
       return response.data;
@@ -44,22 +59,47 @@ const EditJobModal = ({ job, onClose }) => {
       Toast.success("Job updated successfully!");
       queryClient.invalidateQueries(["job-detail", job.id]);
       queryClient.invalidateQueries(["recruiter-jobs"]);
+      queryClient.invalidateQueries(["admin-jobs"]);
+      queryClient.invalidateQueries(["job-page-data"]);
       onClose();
     },
     onError: (error) => {
-      Toast.error(error.response?.data?.message || "Failed to update job");
+      console.error("Job update error:", error.response?.data);
+      Toast.error(
+        error.response?.data?.reason ||
+          error.response?.data?.message ||
+          "Failed to update job"
+      );
     },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // Helper function to safely convert a value to an array
+    const toArray = (value) => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value;
+      if (typeof value === "string") {
+        return value
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+      return [];
+    };
+
     // Prepare data for update
+    // Convert comma-separated strings back to arrays for fields that expect arrays
     const updateData = {
       ...formData,
       applicationDeadline: formData.applicationDeadline
         ? new Date(formData.applicationDeadline).toISOString()
         : null,
+      // Convert string fields to arrays (the model setters expect arrays)
+      gradYear: toArray(formData.gradYear),
+      locationOptions: toArray(formData.locationOptions),
+      ctcBreakup: toArray(formData.ctcBreakup),
     };
 
     updateMutation.mutate(updateData);
