@@ -20,6 +20,7 @@ import EditCompanyModal from "@/components/company/EditCompanyModal";
 import DeleteCompanyModal from "@/components/company/DeleteCompanyModal";
 import EmptyState from "@/components/ui/EmptyState";
 import HRTable from "@/components/company/HRTable";
+import { getLogoUrl } from "@/utils/logoHelper";
 
 const Companies = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -247,10 +248,12 @@ const Companies = () => {
                         }
                       >
                         <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 bg-base-100">
-                          {company.logo ? (
+                          {(() => {
+                            const logoUrl = getLogoUrl(company.logo);
+                            return logoUrl ? (
                             <div className="relative w-full h-full">
                               <img
-                                src={`${import.meta.env.VITE_URI}${company.logo?.trim()}`} // Add trim() to remove spaces
+                                src={logoUrl}
                                 alt={company.name}
                                 className="w-full h-full object-contain rounded-lg p-1"
                                 onError={(e) => {
@@ -266,9 +269,10 @@ const Companies = () => {
                                 }}
                               />
                             </div>
-                          ) : (
-                            <RiBuildingLine size={24} className="text-muted" />
-                          )}
+                            ) : (
+                              <RiBuildingLine size={24} className="text-muted" />
+                            );
+                          })()}
                         </div>
 
                         <div className="flex-1">

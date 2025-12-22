@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { authState } from '@/store/atoms/authAtom';
 import axios from '@/utils/axiosConfig';
 import { Toast } from '@/components/ui/toast';
+import { resolveAvatar, resolveAvatarSync } from '@/utils/avatarHelper';
 
 const AuthPersist = ({ children }) => {
   const [auth, setAuth] = useRecoilState(authState);
@@ -21,7 +22,13 @@ const AuthPersist = ({ children }) => {
 
       const { user, student, admin, recruiter } = response.data;
       const storedUser = JSON.parse(localStorage.getItem('userData') || "null");
-      const userWithPhoto = storedUser?.photoURL ? { ...user, photoURL: storedUser.photoURL } : user;
+      const photoUrl = storedUser?.photoURL;
+      const resolvedPhoto = await resolveAvatar(
+        user.email,
+        photoUrl,
+        user.fullName
+      );
+      const userWithPhoto = { ...user, photoURL: resolvedPhoto };
       const isAdminRole = user.role === "admin" || user.role === "super-admin";
       const role = user.role === "student" ? student : isAdminRole ? admin : recruiter;
 

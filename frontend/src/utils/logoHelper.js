@@ -6,26 +6,35 @@
 export const getLogoUrl = (logoPath) => {
   if (!logoPath) return null;
 
+  const trimmedPath = logoPath.trim();
+  if (!trimmedPath) return null;
+
   // If it's already a full URL (http:// or https://), return as-is
-  if (logoPath.startsWith("http://") || logoPath.startsWith("https://")) {
-    return logoPath;
+  if (trimmedPath.startsWith("http://") || trimmedPath.startsWith("https://")) {
+    return trimmedPath;
   }
 
-  const baseUrl = import.meta.env.VITE_URI || "http://localhost:8000";
+  const baseUrl = (import.meta.env.VITE_URI || "http://localhost:8000").replace(
+    /\/$/,
+    ""
+  );
 
-  // If the path already starts with /uploads/, use it directly
-  if (logoPath.startsWith("/uploads/")) {
-    return `${baseUrl}${logoPath}`;
+  // Normalize leading slashes
+  const normalizedPath = trimmedPath.replace(/^\/+/, "");
+
+  // If the path already points to uploads/, return it with the backend base
+  if (normalizedPath.startsWith("uploads/")) {
+    return `${baseUrl}/${normalizedPath}`;
   }
 
-  // If the path starts with /, assume it's a relative path from root
-  if (logoPath.startsWith("/")) {
-    return `${baseUrl}${logoPath}`;
+  // If the path starts with /uploads/ after normalization
+  if (trimmedPath.startsWith("/uploads/")) {
+    return `${baseUrl}${trimmedPath}`;
   }
 
   // Legacy paths that are just filenames (e.g., "google-logo.png")
   // These should be prefixed with /uploads/logo/
-  return `${baseUrl}/uploads/logo/${logoPath}`;
+  return `${baseUrl}/uploads/logo/${normalizedPath}`;
 };
 
 /**

@@ -131,6 +131,44 @@ const JobDetail = () => {
 
   const isApplied = !!job?.appliedToJob;
   const isEligible = job?.eligibility?.eligible ?? true;
+  const normalizeWebLink = (link) => {
+    if (!link) return null;
+
+    if (typeof link === "string") {
+      const trimmed = link.trim();
+      if (!trimmed) return null;
+      return { url: trimmed, label: trimmed };
+    }
+
+    if (typeof link === "object") {
+      const url = link.url || link.href || link.link || "";
+      const label = link.title || link.label || link.name || url;
+      if (!url) return null;
+      return { url, label: label || url };
+    }
+
+    return null;
+  };
+  const renderContent = (content, fallbackText) => {
+    if (!content || !content.trim()) {
+      return (
+        <p className="text-muted whitespace-pre-line leading-relaxed">
+          {fallbackText}
+        </p>
+      );
+    }
+
+    const trimmed = content.trim();
+    const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(trimmed);
+    const html = looksLikeHtml ? trimmed : trimmed.replace(/\n/g, "<br />");
+
+    return (
+      <div
+        className="text-muted leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  };
 
   if (!auth.isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -302,9 +340,10 @@ const JobDetail = () => {
                   <RiFileTextLine className="text-primary" />
                   Job Description
                 </h2>
-                <p className="text-muted whitespace-pre-line leading-relaxed">
-                  {job.descriptionText || "No description provided."}
-                </p>
+                {renderContent(
+                  job.descriptionText,
+                  "No description provided."
+                )}
               </div>
 
               {/* Requirements */}
@@ -313,9 +352,7 @@ const JobDetail = () => {
                   <h2 className="text-lg font-semibold text-dark mb-3">
                     Requirements
                   </h2>
-                  <p className="text-muted whitespace-pre-line leading-relaxed">
-                    {job.requirements}
-                  </p>
+                  {renderContent(job.requirements, "No requirements provided.")}
                 </div>
               )}
 
@@ -325,9 +362,10 @@ const JobDetail = () => {
                   <h2 className="text-lg font-semibold text-dark mb-3">
                     Responsibilities
                   </h2>
-                  <p className="text-muted whitespace-pre-line leading-relaxed">
-                    {job.responsibilities}
-                  </p>
+                  {renderContent(
+                    job.responsibilities,
+                    "No responsibilities provided."
+                  )}
                 </div>
               )}
 
@@ -467,17 +505,21 @@ const JobDetail = () => {
                     Related Links
                   </h2>
                   <div className="space-y-2">
-                    {job.webLinks.map((link, idx) => (
-                      <a
-                        key={idx}
-                        href={link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline block truncate"
-                      >
-                        {link}
-                      </a>
-                    ))}
+                    {job.webLinks
+                      .map(normalizeWebLink)
+                      .filter(Boolean)
+                      .map((link, idx) => (
+                        <a
+                          key={`${link.url}-${idx}`}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline block truncate"
+                          title={link.url}
+                        >
+                          {link.label}
+                        </a>
+                      ))}
                   </div>
                 </div>
               )}

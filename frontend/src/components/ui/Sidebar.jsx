@@ -17,6 +17,7 @@ import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
 import { BiSolidSchool } from "react-icons/bi";
 import { FiUsers } from "react-icons/fi";
 import { assets } from "../../assets/assets";
+import { resolveAvatarSync } from "@/utils/avatarHelper";
 
 const menuConfigs = {
   "super-admin": [
@@ -122,6 +123,7 @@ const Sidebar = () => {
   const setAuth = useSetRecoilState(authState);
   const navigate = useNavigate();
   const location = useLocation();
+  const isAnalyticsPage = location.pathname.includes("analytics");
   const [activeItem, setActiveItem] = useState(() => {
     const path = location.pathname;
     const currentMenu = menuConfigs[auth.user?.role || "admin"];
@@ -146,10 +148,19 @@ const Sidebar = () => {
       console.error("Logout error:", error);
     }
   };
+  const avatarSrc = resolveAvatarSync(
+    auth.user?.email,
+    auth.user?.fullName,
+    auth.user?.photoURL || assets.profileimg
+  );
 
   return (
-    <div className="h-full z-10">
-      <div className="flex flex-col gap-10 items-center h-full bg-background ml-10 mt-4">
+    <div className="h-full z-100">
+      <div
+        className={`flex flex-col gap-10 items-center h-full ml-10 mt-4 ${
+          isAnalyticsPage ? "bg-white" : "bg-background"
+        }`}
+      >
         <div className="mb-14">
           <img src={assets.logo} alt="Logo" />
         </div>
@@ -188,7 +199,7 @@ const Sidebar = () => {
           </button>
           <img
             className="w-16 rounded-full"
-            src={auth.user?.photoURL || assets.profileimg}
+            src={avatarSrc}
             alt="Profile"
           />
         </div>

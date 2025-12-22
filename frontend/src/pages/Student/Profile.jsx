@@ -19,6 +19,7 @@ import {
   RiBookLine,
 } from "react-icons/ri";
 import ResumeManager from "@/components/student/ResumeManager";
+import { resolveAvatarSync } from "@/utils/avatarHelper";
 
 const Profile = () => {
   const auth = useRecoilValue(authState);
@@ -57,6 +58,7 @@ const Profile = () => {
 
   const user = auth.user;
   const student = auth.role; // Student data is stored in role for students
+  const avatarSrc = resolveAvatarSync(user.email, user.fullName, user.photoURL);
 
   // Format date of birth
   const formatDate = (dateStr) => {
@@ -106,12 +108,7 @@ const Profile = () => {
           <div className="flex items-center gap-6">
             <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center overflow-hidden ring-4 ring-white/30">
               <img
-                src={
-                  user.photoURL ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    user.fullName
-                  )}&size=96&background=random&color=fff`
-                }
+                src={avatarSrc}
                 alt={user.fullName}
                 className="w-full h-full object-cover"
               />
