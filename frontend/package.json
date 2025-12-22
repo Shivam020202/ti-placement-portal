@@ -40,6 +40,7 @@
     "react-select": "^5.10.0",
     "react-to-print": "^3.0.5",
     "recoil": "^0.7.7",
+    "recharts": "^2.12.7",
     "tailwind-merge": "^3.0.2",
     "universal-cookie": "^7.2.2",
     "yup": "^1.6.1"
@@ -57,6 +58,7 @@
     "eslint-plugin-react-refresh": "^0.4.18",
     "globals": "^15.14.0",
     "postcss": "^8.5.2",
+    "rollup": "^4.54.0",
     "tailwindcss": "^3.4.17",
     "vite": "^5.4.14"
   }

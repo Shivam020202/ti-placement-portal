@@ -109,9 +109,22 @@ async function getAppliedStds(req, res, next) {
           model: Student,
           through: {
             model: AppliedToJob,
-            where: { sentToRecruiter: true },
+            attributes: [
+              "createdAt",
+              "stdCgpa",
+              "resume",
+              "coverLetter",
+              "personalEmail",
+              "sentToRecruiter",
+              "status",
+              "reviewedBy",
+              "reviewedAt",
+            ],
+            where: {
+              status: ["approved", "hired"],
+            },
           },
-          include: User,
+          include: [User, Branch],
         },
         Company,
       ],
@@ -231,6 +244,55 @@ async function updateJob(req, res, next) {
   }
 }
 
+async function bulkUpdateApplicationStatus(req, res, next) {
+  const { jobId, studentRollNumbers, status } = req.body;
+  const recruiter = res.locals.recruiter;
+
+  try {
+    if (!jobId) {
+      return respond(res, HttpCodes.BAD_REQUEST, "Job ID is required");
+    }
+    if (!Array.isArray(studentRollNumbers) || !studentRollNumbers.length) {
+      return respond(
+        res,
+        HttpCodes.BAD_REQUEST,
+        "studentRollNumbers must be a non-empty array"
+      );
+    }
+    if (!["approved", "rejected", "hired"].includes(status)) {
+      return respond(res, HttpCodes.BAD_REQUEST, "Invalid status");
+    }
+
+    const job = await JobListing.findOne({
+      where: { id: jobId, companyId: recruiter.companyId },
+    });
+
+    if (!job) {
+      return respond(res, HttpCodes.NOT_FOUND, "Job not found");
+    }
+
+    const [updatedCount] = await AppliedToJob.update(
+      {
+        status,
+        reviewedBy: req?.res?.locals?.user?.email || res.locals.user.email,
+        reviewedAt: new Date(),
+      },
+      {
+        where: {
+          job_listing_id: jobId,
+          student_roll_number: studentRollNumbers,
+        },
+      }
+    );
+
+    return respond(res, HttpCodes.OK, "Applications updated", {
+      updatedCount,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getAllJobsForRecruiters,
   createJobsByRecruiters,
@@ -238,4 +300,5 @@ module.exports = {
   getAppliedStds,
   exportAppliedStds,
   updateJob,
+  bulkUpdateApplicationStatus,
 };

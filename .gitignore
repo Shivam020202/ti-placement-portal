@@ -47,3 +47,4 @@ coverage/
 *.seed
 *.sqlite
 *.tsbuildinfo
+design-language.md

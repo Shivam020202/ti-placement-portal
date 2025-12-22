@@ -157,6 +157,42 @@ async function downloadResume(req, res, next) {
   }
 }
 
+// Download/view a specific resume (admin/super-admin)
+async function downloadResumeForAdmin(req, res, next) {
+  const resId = req.params.id;
+
+  try {
+    const resume = await Resume.findByPk(resId);
+
+    if (!resume) {
+      return res.status(404).json({ message: "Resume not found." });
+    }
+
+    // Check if it's an old Firebase-stored resume
+    if (resume.url && !resume.fileData) {
+      return res.redirect(resume.url);
+    }
+
+    if (!resume.fileData) {
+      return res.status(404).json({ message: "Resume file data not found." });
+    }
+
+    res.setHeader("Content-Type", resume.mimeType || "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${resume.originalName || resume.name}"`
+    );
+    if (resume.fileSize) {
+      res.setHeader("Content-Length", resume.fileSize);
+    }
+
+    res.send(resume.fileData);
+  } catch (error) {
+    console.error("Admin download resume error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
 async function deleteResume(req, res, next) {
   const resId = req.params.id;
 
@@ -183,4 +219,10 @@ async function deleteResume(req, res, next) {
   }
 }
 
-module.exports = { uploadRes, getRes, downloadResume, deleteResume };
+module.exports = {
+  uploadRes,
+  getRes,
+  downloadResume,
+  downloadResumeForAdmin,
+  deleteResume,
+};

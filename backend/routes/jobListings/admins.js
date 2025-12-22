@@ -27,6 +27,12 @@ router.get("/export-applied-std/:id", JobListingController.exportAppliedStds);
 // Sent Applications to Recruiters
 router.put("/send-to-recruiter", JobListingController.sendToRecruiter);
 
+// Bulk update application status (Approve/Reject)
+router.patch(
+  "/applications/status",
+  JobListingController.bulkUpdateApplicationStatus
+);
+
 // Get job listing by id
 router.get("/:id", JobListingController.getJobListingById);
 

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
 import { useRecoilValue } from "recoil";
 import { authState } from "@/store/atoms/authAtom";
@@ -16,6 +16,8 @@ import {
   RiCheckLine,
   RiAlertLine,
   RiEditLine,
+  RiCloseLine,
+  RiBriefcase2Line,
 } from "react-icons/ri";
 import Dashboard from "@/components/layouts/Dashboard";
 import EditJobModal from "@/components/job/EditJobModal";
@@ -23,7 +25,48 @@ import EditJobModal from "@/components/job/EditJobModal";
 const JobDetail = () => {
   const { id } = useParams();
   const auth = useRecoilValue(authState);
+  const queryClient = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [activeStatus, setActiveStatus] = useState("approved");
+
+  const parseResumeReference = (rawResume) => {
+    if (!rawResume) return { type: "none" };
+    if (rawResume.startsWith("http")) {
+      return { type: "url", url: rawResume };
+    }
+    const match = rawResume.match(/ID:\s*(\d+)/i);
+    if (match) {
+      return { type: "id", id: match[1], label: rawResume };
+    }
+    return { type: "text", label: rawResume };
+  };
+
+  const handleResumeOpen = async (resumeMeta) => {
+    if (!resumeMeta || resumeMeta.type === "none") return;
+    if (resumeMeta.type === "url") {
+      window.open(resumeMeta.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (resumeMeta.type !== "id") return;
+
+    const newTab = window.open("", "_blank", "noopener,noreferrer");
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_URI}/super-admin/resumes/download/${resumeMeta.id}`,
+        { responseType: "blob" }
+      );
+      const blobUrl = window.URL.createObjectURL(response.data);
+      if (newTab) {
+        newTab.location.href = blobUrl;
+      } else {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
+    } catch (error) {
+      if (newTab) newTab.close();
+    }
+  };
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["job-detail", id],
@@ -42,9 +85,118 @@ const JobDetail = () => {
       const response = await axios.get(
         `${import.meta.env.VITE_URI}/job-listings/recruiters/applied-stds/${id}`
       );
-      return response.data.job?.Students || [];
+      const students = response.data.job?.Students || [];
+      return students.map((student) => {
+        const status =
+          student.AppliedToJob?.status ||
+          (student.AppliedToJob?.sentToRecruiter ? "approved" : "pending");
+        const resumeMeta = parseResumeReference(
+          student.AppliedToJob?.resume ||
+            student.User?.Resumes?.[0]?.resumeLink ||
+            ""
+        );
+        return {
+          ...student,
+          rollNumber: student.rollNumber,
+          status,
+          resumeMeta,
+        };
+      });
     },
   });
+
+  const approvedApplications = useMemo(
+    () =>
+      applications?.filter(
+        (app) => app.status === "approved" || app.status === "hired"
+      ) || [],
+    [applications]
+  );
+
+  const statusCounts = useMemo(
+    () =>
+      approvedApplications.reduce(
+        (acc, app) => {
+          if (app.status === "hired") acc.hired += 1;
+          else acc.approved += 1;
+          return acc;
+        },
+        { approved: 0, hired: 0 }
+      ),
+    [approvedApplications]
+  );
+
+  const filteredApplications = useMemo(
+    () =>
+      approvedApplications.filter((app) => app.status === activeStatus),
+    [approvedApplications, activeStatus]
+  );
+
+  const selectedSet = new Set(selectedIds);
+  const allVisibleSelected =
+    filteredApplications.length > 0 &&
+    filteredApplications.every((app) => selectedSet.has(app.rollNumber));
+
+  const toggleSelect = (roll) => {
+    setSelectedIds((prev) =>
+      prev.includes(roll) ? prev.filter((id) => id !== roll) : [...prev, roll]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelectedIds((prev) =>
+        prev.filter(
+          (id) => !filteredApplications.some((app) => app.rollNumber === id)
+        )
+      );
+      return;
+    }
+    const ids = filteredApplications
+      .map((app) => app.rollNumber)
+      .filter(Boolean);
+    setSelectedIds((prev) => Array.from(new Set([...prev, ...ids])));
+  };
+
+  const bulkUpdateStatus = async (nextStatus) => {
+    if (!selectedIds.length) return;
+    try {
+      await axios.patch(
+        `${import.meta.env.VITE_URI}/job-listings/recruiters/applications/status`,
+        {
+          jobId: Number(id),
+          studentRollNumbers: selectedIds,
+          status: nextStatus,
+        }
+      );
+      setSelectedIds([]);
+      queryClient.invalidateQueries({ queryKey: ["job-applications", id] });
+    } catch (error) {
+      // no-op for now
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const columns = ["firstName", "lastName", "email", "cgpa"];
+      const response = await axios.get(
+        `${import.meta.env.VITE_URI}/job-listings/recruiters/export-applied-std/${id}?columns=${columns.join(
+          ","
+        )}`,
+        { responseType: "blob" }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "applications.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      // swallow
+    }
+  };
 
   if (isLoading) {
     return (
@@ -290,28 +442,59 @@ const JobDetail = () => {
 
         {/* Applications */}
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
-              Applications ({applications?.length || 0})
-            </h2>
-            {applications && applications.length > 0 && (
-              <a
-                href={`${
-                  import.meta.env.VITE_URI
-                }/job-listings/recruiters/export-applied-std/${id}?columns=firstName,lastName,email,cgpa`}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-semibold">
+                Applications ({filteredApplications?.length || 0})
+              </h2>
+              <div className="flex items-center gap-2">
+                <button
+                  className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    activeStatus === "approved"
+                      ? "bg-primary text-white"
+                      : "bg-gray-100 text-muted"
+                  }`}
+                  onClick={() => setActiveStatus("approved")}
+                >
+                  Approved ({statusCounts.approved})
+                </button>
+                <button
+                  className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    activeStatus === "hired"
+                      ? "bg-primary text-white"
+                      : "bg-gray-100 text-muted"
+                  }`}
+                  onClick={() => setActiveStatus("hired")}
+                >
+                  Hired ({statusCounts.hired})
+                </button>
+              </div>
+            </div>
+            {approvedApplications && approvedApplications.length > 0 && (
+              <button
+                type="button"
+                onClick={handleExport}
                 className="btn btn-outline flex items-center gap-2"
               >
                 <RiDownloadLine className="w-4 h-4" />
                 Export to Excel
-              </a>
+              </button>
             )}
           </div>
 
-          {applications && applications.length > 0 ? (
+          {approvedApplications && approvedApplications.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-6 py-3">
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm checkbox-error"
+                        checked={allVisibleSelected}
+                        onChange={toggleSelectAll}
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Candidate
                     </th>
@@ -327,11 +510,27 @@ const JobDetail = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Resume
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {applications.map((student) => (
-                    <tr key={student.id} className="hover:bg-gray-50">
+                  {filteredApplications.map((student) => {
+                    const rowKey =
+                      student.rollNumber ||
+                      student.id ||
+                      `${student.User?.email || "student"}-${student.jobId}`;
+                    return (
+                      <tr key={rowKey} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm checkbox-error"
+                          checked={selectedSet.has(student.rollNumber)}
+                          onChange={() => toggleSelect(student.rollNumber)}
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -367,22 +566,54 @@ const JobDetail = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {student.User?.Resumes?.[0] && (
-                          <a
-                            href={student.User.Resumes[0].resumeLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        {student.resumeMeta?.type &&
+                        student.resumeMeta.type !== "none" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleResumeOpen(student.resumeMeta)}
                             className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
                           >
                             <RiDownloadLine className="w-4 h-4" />
                             View
-                          </a>
+                          </button>
+                        ) : (
+                          <span className="text-muted text-xs">No resume</span>
                         )}
                       </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            student.status === "hired"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}
+                        >
+                          {student.status}
+                        </span>
+                      </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
+              <div className="flex items-center gap-3 p-4 border-t bg-gray-50">
+                <button
+                  className="btn btn-sm btn-outline border-red text-red hover:bg-red hover:text-white"
+                  onClick={() => bulkUpdateStatus("rejected")}
+                  disabled={!selectedIds.length}
+                >
+                  <RiCloseLine />
+                  Reject
+                </button>
+                <button
+                  className="btn btn-sm btn-success"
+                  onClick={() => bulkUpdateStatus("hired")}
+                  disabled={!selectedIds.length}
+                >
+                  <RiBriefcase2Line />
+                  Mark Hired
+                </button>
+              </div>
             </div>
           ) : (
             <div className="text-center py-8 text-muted">

@@ -24,6 +24,9 @@ router.use("/company", companyRouter); // Add company routes
 const jobRouter = require("./job.js");
 router.use("/job", jobRouter);
 
+const resumeRouter = require("./resume.js");
+router.use("/resumes", resumeRouter);
+
 router.use("/", (req, res) => {
   res.send("Hello , Welcome to the super admin API");
 });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import DashboardLayout from "../../components/layouts/Dashboard";
 import { useRecoilValue } from "recoil";
 import { authState } from "../../store/atoms/authAtom";
@@ -76,6 +76,22 @@ const Dashboard = () => {
     totalStudents: 0,
     totalApplications: 0,
   };
+
+  const eventsByDay = useMemo(() => {
+    const allJobs = [
+      ...(jobsData?.inactiveJobs || []),
+      ...(jobsData?.activeJobs || []),
+    ];
+
+    return allJobs.reduce((acc, job) => {
+      const eventDate = job.applicationDeadline || job.createdAt;
+      if (!eventDate) return acc;
+
+      const key = new Date(eventDate).toDateString();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+  }, [jobsData]);
 
   return (
     <DashboardLayout>
@@ -248,7 +264,7 @@ const Dashboard = () => {
         <div className="flex h-[60vh] gap-6">
           <div className="flex flex-col h-full gap-6 w-[70%]">
             {/* Pending Requests Card */}
-            <div className="bg-white rounded-xl p-6 h-[50%] flex flex-col">
+            <div className="bg-white rounded-xl p-6 h-[45%] flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Pending Reviews</h2>
                 <Link
@@ -293,7 +309,7 @@ const Dashboard = () => {
             </div>
 
             {/* Active Listings Card */}
-            <div className="bg-white rounded-xl p-6 h-[50%] flex flex-col">
+            <div className="bg-white rounded-xl p-6 h-[55%] flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Active Listings</h2>
                 <Link
@@ -344,14 +360,18 @@ const Dashboard = () => {
             <div className="rounded-xl overflow-hidden h-[55%] bg-dark">
               <div className="calendar h-full flex flex-col">
                 <div className="calendar-header bg-dark text-white py-2 text-center flex-shrink-0">
-                  {date.toLocaleString("default", {
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </div>
-                <CalendarGrid date={date} setDate={setDate} />
-              </div>
+              {date.toLocaleString("default", {
+                month: "long",
+                year: "numeric",
+              })}
             </div>
+            <CalendarGrid
+              date={date}
+              setDate={setDate}
+              eventsByDay={eventsByDay}
+            />
+          </div>
+        </div>
 
             {/* Branch Stats Card */}
             <div className="rounded-xl h-[45%]">
@@ -433,7 +453,7 @@ const JobCard = ({ job, showStatus = false }) => (
   </Link>
 );
 
-const CalendarGrid = ({ date, setDate }) => {
+const CalendarGrid = ({ date, setDate, eventsByDay }) => {
   const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
   const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
   const daysInMonth = lastDay.getDate();
@@ -473,21 +493,18 @@ const CalendarGrid = ({ date, setDate }) => {
             );
           }
 
-          const currentDate = new Date(
-            date.getFullYear(),
-            date.getMonth(),
-            dayNum
-          );
+          const currentDate = new Date(date.getFullYear(), date.getMonth(), dayNum);
           const isToday =
             currentDate.toDateString() === new Date().toDateString();
           const isSelected = currentDate.toDateString() === date.toDateString();
+          const eventCount = eventsByDay[currentDate.toDateString()] || 0;
 
           return (
             <button
               key={i}
               onClick={() => setDate(currentDate)}
               className={`
-                h-6 w-6 mx-auto flex items-center justify-center rounded-full text-xs
+                h-8 w-8 mx-auto flex items-center justify-center rounded-full text-xs
                 transition-colors duration-200
                 ${
                   isToday
@@ -497,7 +514,14 @@ const CalendarGrid = ({ date, setDate }) => {
                 ${isSelected && !isToday ? "border border-red" : ""}
               `}
             >
-              {dayNum}
+              <div className="flex flex-col items-center leading-tight">
+                <span>{dayNum}</span>
+                {eventCount > 0 && (
+                  <span className="mt-0.5 text-[10px] leading-none text-red font-semibold">
+                    {eventCount > 1 ? eventCount : "•"}
+                  </span>
+                )}
+              </div>
             </button>
           );
         })}
